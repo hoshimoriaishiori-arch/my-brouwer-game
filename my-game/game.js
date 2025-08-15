@@ -1,4 +1,13 @@
-// ====== Šî–{İ’è ======
+// ====== ã‚¹ã‚¯ãƒ­ãƒ¼ãƒ«å›ºå®šï¼ˆã‚¹ãƒãƒ›å¯¾ç­–ï¼‰ ======
+document.body.addEventListener("touchstart", function(e) {
+    e.preventDefault();
+}, { passive: false });
+
+document.body.addEventListener("touchmove", function(e) {
+    e.preventDefault();
+}, { passive: false });
+
+// ====== åŸºæœ¬è¨­å®š ======
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
@@ -9,57 +18,53 @@ let step = 0;
 let currentLane = 0;
 let bgOffset = 0;
 let startY = 0;
+let startX = 0;
 
-// ƒQ[ƒ€ƒI[ƒo[ƒ{ƒ^ƒ“‚Ì—ÌˆæiŒã‚Åg‚¤j
+// ã‚²ãƒ¼ãƒ ã‚ªãƒ¼ãƒãƒ¼ãƒœã‚¿ãƒ³ã®é ˜åŸŸ
 let goButton = { x: 300, y: 500, w: 200, h: 50 };
 
-// ====== ƒŒ[ƒ“‚ÌYÀ•W ======
+// ====== ãƒ¬ãƒ¼ãƒ³ã®Yåº§æ¨™ ======
 const laneY = [200, 300, 400];
 const playerX = 100;
 
-// ====== ‰æ‘œ“Ç‚İ‚İŠÖ” ======
+// ====== ç”»åƒèª­ã¿è¾¼ã¿é–¢æ•° ======
 function loadImage(src) {
     return new Promise((resolve, reject) => {
         const img = new Image();
         img.onload = () => resolve(img);
         img.onerror = () => {
-            console.error("‰æ‘œ“Ç‚İ‚İ¸”s:", src);
+            console.error("ç”»åƒèª­ã¿è¾¼ã¿å¤±æ•—:", src);
             reject();
         };
         img.src = src;
     });
 }
 
-// ====== ‰æ‘œ“Ç‚İ‚İ ======
+// ====== ç”»åƒèª­ã¿è¾¼ã¿ ======
 let playerImg1, playerImg2, backgrounds = [], obstacleImgs = [], startImg, gameOverImgs = [];
 
 async function loadAssets() {
-    // ƒvƒŒƒCƒ„[
     playerImg1 = await loadImage("images/player/girl1.png");
     playerImg2 = await loadImage("images/player/girl2.png");
 
-    // ”wŒi
     for (let i = 1; i <= 9; i++) {
         backgrounds.push(await loadImage(`images/background/bg${i}.png`));
     }
 
-    // áŠQ•¨
     for (let i = 1; i <= 9; i++) {
         const img1 = await loadImage(`images/obstacle/${i}_1.png`);
         const img2 = await loadImage(`images/obstacle/${i}_2.png`);
         obstacleImgs.push([img1, img2]);
     }
 
-    // ƒXƒ^[ƒg‰æ–Ê
     startImg = await loadImage("images/start.png");
 
-    // ƒQ[ƒ€ƒI[ƒo[‰æ–Ê
     for (let i = 1; i <= 9; i++) {
         gameOverImgs.push(await loadImage(`images/gameover${i}.png`));
     }
 }
 
-// ====== áŠQ•¨‰Šúİ’è ======
+// ====== éšœå®³ç‰©åˆæœŸè¨­å®š ======
 let obstacles = [];
 function initObstacles() {
     obstacles = [];
@@ -73,7 +78,7 @@ function initObstacles() {
     }
 }
 
-// ====== ƒQ[ƒ€ŠJnˆ— ======
+// ====== ã‚²ãƒ¼ãƒ é–‹å§‹å‡¦ç† ======
 function startGame() {
     gameState = "play";
     score = 0;
@@ -83,7 +88,7 @@ function startGame() {
     initObstacles();
 }
 
-// ====== “ü—ÍƒCƒxƒ“ƒg ======
+// ====== å…¥åŠ›ã‚¤ãƒ™ãƒ³ãƒˆ ======
 function handleInputStart(y, x) {
     startY = y;
     startX = x;
@@ -95,7 +100,6 @@ function handleInputEnd(y, x) {
     } else if (gameState === "start") {
         startGame();
     } else if (gameState === "gameover") {
-        // ƒ{ƒ^ƒ“ƒ^ƒbƒv”»’è
         if (x >= goButton.x && x <= goButton.x + goButton.w &&
             y >= goButton.y && y <= goButton.y + goButton.h) {
             gameState = "start";
@@ -117,7 +121,7 @@ canvas.addEventListener("mouseup", e => {
     handleInputEnd(e.clientY, e.clientX);
 });
 
-// ====== ƒQ[ƒ€ƒ‹[ƒv ======
+// ====== ã‚²ãƒ¼ãƒ ãƒ«ãƒ¼ãƒ— ======
 function gameLoop() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -125,13 +129,11 @@ function gameLoop() {
         ctx.drawImage(startImg, 0, 0, canvas.width, canvas.height);
 
     } else if (gameState === "play") {
-        // ”wŒiƒXƒNƒ[ƒ‹
         bgOffset -= 2;
         if (bgOffset <= -canvas.width) bgOffset = 0;
         ctx.drawImage(backgrounds[level - 1], bgOffset, 0, canvas.width, canvas.height);
         ctx.drawImage(backgrounds[level - 1], bgOffset + canvas.width, 0, canvas.width, canvas.height);
 
-        // áŠQ•¨•`‰æ
         obstacles.forEach(obs => {
             obs.x -= obs.speed;
             if (obs.x < -50) {
@@ -144,31 +146,11 @@ function gameLoop() {
             obs.img = obstacleImgs[level - 1][obs.speed > 3 ? 1 : 0];
             ctx.drawImage(obs.img, obs.x, laneY[obs.lane], 50, 50);
 
-            // “–‚½‚è”»’è
             if (Math.abs(playerX - obs.x) < 40 && currentLane === obs.lane) {
-
-
-//Õ“ËƒGƒtƒFƒNƒg‚Æ­‚µƒ^ƒ‚é
-
-  const flash = document.createElement("div");
-  flash.style.position = "absolute";
-  flash.style.width = player.offsetWidth + "px";
-  flash.style.height = player.offsetHeight + "px";
-  flash.style.left = player.offsetLeft + "px";
-  flash.style.bottom = player.style.bottom;
-  flash.style.background = "rgba(255,0,0,0.7)";
-  flash.style.borderRadius = "50%";
-  flash.style.zIndex = 20;
-  flash.style.animation = "flashAnim 0.8s ease-out forwards";
-  gameArea.appendChild(flash);
-  setTimeout(() => flash.remove(), 800);
-
-
                 gameState = "gameover";
             }
         });
 
-        // ƒvƒŒƒCƒ„[ƒAƒjƒ
         if (step % 20 < 10) {
             ctx.drawImage(playerImg1, playerX, laneY[currentLane], 50, 50);
         } else {
@@ -176,7 +158,6 @@ function gameLoop() {
         }
         step++;
 
-        // ƒXƒRƒA•\¦
         ctx.fillStyle = "white";
         ctx.font = "20px Arial";
         ctx.fillText(`Score: ${score}`, 10, 30);
@@ -185,28 +166,24 @@ function gameLoop() {
     } else if (gameState === "gameover") {
         ctx.drawImage(gameOverImgs[level - 1], 0, 0, canvas.width, canvas.height);
 
-        // ƒXƒRƒA & ƒŒƒxƒ‹
         ctx.fillStyle = "white";
         ctx.font = "30px Arial";
         ctx.fillText(`Score: ${score}`, 10, 50);
         ctx.fillText(`Level: ${level}`, 10, 90);
 
-        // –ß‚éƒ{ƒ^ƒ“
         ctx.fillStyle = "#222";
         ctx.fillRect(goButton.x, goButton.y, goButton.w, goButton.h);
         ctx.strokeStyle = "white";
         ctx.strokeRect(goButton.x, goButton.y, goButton.w, goButton.h);
         ctx.fillStyle = "white";
         ctx.font = "20px Arial";
-        ctx.fillText("ƒXƒ^[ƒg‰æ–Ê‚É–ß‚é", goButton.x + 15, goButton.y + 30);
+        ctx.fillText("ã‚¹ã‚¿ãƒ¼ãƒˆç”»é¢ã«æˆ»ã‚‹", goButton.x + 15, goButton.y + 30);
     }
 
     requestAnimationFrame(gameLoop);
 }
 
-
-
-// ====== Às ======
+// ====== å®Ÿè¡Œ ======
 loadAssets().then(() => {
     gameLoop();
 });
