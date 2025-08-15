@@ -75,10 +75,18 @@ function getObstacleSpeed() {
     }
 }
 
+// ====== レベル別の障害物数 ======
+function getObstacleCount() {
+    if (level <= 3) return 3;
+    if (level <= 6) return 4;
+    return 5;
+}
+
 let obstacles = [];
 function initObstacles() {
     obstacles = [];
-    for (let i = 0; i < 3; i++) {
+    const count = getObstacleCount();
+    for (let i = 0; i < count; i++) {
         obstacles.push({
             x: canvas.width + i * 400,
             lane: Math.floor(Math.random() * 3),
@@ -165,7 +173,19 @@ function gameLoop() {
                 obs.lane = Math.floor(Math.random() * 3);
                 obs.speed = getObstacleSpeed();
                 score++;
-                if (score % 10 === 0 && level < 9) level++;
+
+                if (score % 10 === 0 && level < 9) {
+                    level++;
+                    const desiredCount = getObstacleCount();
+                    while (obstacles.length < desiredCount) {
+                        obstacles.push({
+                            x: canvas.width + Math.random() * 400,
+                            lane: Math.floor(Math.random() * 3),
+                            speed: getObstacleSpeed(),
+                            img: null
+                        });
+                    }
+                }
             }
 
             obs.img = obstacleImgs[level - 1][obs.speed > 2 ? 1 : 0];
