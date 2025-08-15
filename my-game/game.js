@@ -1,4 +1,4 @@
-// ====== åŸºæœ¬è¨­å®š ======
+// ====== Šî–{İ’è ======
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
@@ -10,53 +10,56 @@ let currentLane = 0;
 let bgOffset = 0;
 let startY = 0;
 
-// ====== ãƒ¬ãƒ¼ãƒ³ã®Yåº§æ¨™ ======
+// ƒQ[ƒ€ƒI[ƒo[ƒ{ƒ^ƒ“‚Ì—ÌˆæiŒã‚Åg‚¤j
+let goButton = { x: 300, y: 500, w: 200, h: 50 };
+
+// ====== ƒŒ[ƒ“‚ÌYÀ•W ======
 const laneY = [200, 300, 400];
 const playerX = 100;
 
-// ====== ç”»åƒèª­ã¿è¾¼ã¿é–¢æ•° ======
+// ====== ‰æ‘œ“Ç‚İ‚İŠÖ” ======
 function loadImage(src) {
     return new Promise((resolve, reject) => {
         const img = new Image();
         img.onload = () => resolve(img);
         img.onerror = () => {
-            console.error("ç”»åƒèª­ã¿è¾¼ã¿å¤±æ•—:", src);
+            console.error("‰æ‘œ“Ç‚İ‚İ¸”s:", src);
             reject();
         };
         img.src = src;
     });
 }
 
-// ====== ç”»åƒèª­ã¿è¾¼ã¿ ======
+// ====== ‰æ‘œ“Ç‚İ‚İ ======
 let playerImg1, playerImg2, backgrounds = [], obstacleImgs = [], startImg, gameOverImgs = [];
 
 async function loadAssets() {
-    // ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼
+    // ƒvƒŒƒCƒ„[
     playerImg1 = await loadImage("images/player/girl1.png");
     playerImg2 = await loadImage("images/player/girl2.png");
 
-    // èƒŒæ™¯ï¼ˆPNGï¼‰
+    // ”wŒi
     for (let i = 1; i <= 9; i++) {
         backgrounds.push(await loadImage(`images/background/bg${i}.png`));
     }
 
-    // éšœå®³ç‰©ï¼ˆPNGï¼‰
+    // áŠQ•¨
     for (let i = 1; i <= 9; i++) {
         const img1 = await loadImage(`images/obstacle/${i}_1.png`);
         const img2 = await loadImage(`images/obstacle/${i}_2.png`);
         obstacleImgs.push([img1, img2]);
     }
 
-    // ã‚¹ã‚¿ãƒ¼ãƒˆç”»é¢
+    // ƒXƒ^[ƒg‰æ–Ê
     startImg = await loadImage("images/start.png");
 
-    // ã‚²ãƒ¼ãƒ ã‚ªãƒ¼ãƒãƒ¼ç”»é¢ï¼ˆPNGï¼‰
+    // ƒQ[ƒ€ƒI[ƒo[‰æ–Ê
     for (let i = 1; i <= 9; i++) {
         gameOverImgs.push(await loadImage(`images/gameover${i}.png`));
     }
 }
 
-// ====== éšœå®³ç‰©åˆæœŸè¨­å®š ======
+// ====== áŠQ•¨‰Šúİ’è ======
 let obstacles = [];
 function initObstacles() {
     obstacles = [];
@@ -70,7 +73,7 @@ function initObstacles() {
     }
 }
 
-// ====== ã‚²ãƒ¼ãƒ é–‹å§‹å‡¦ç† ======
+// ====== ƒQ[ƒ€ŠJnˆ— ======
 function startGame() {
     gameState = "play";
     score = 0;
@@ -80,26 +83,41 @@ function startGame() {
     initObstacles();
 }
 
-// ====== å…¥åŠ›ã‚¤ãƒ™ãƒ³ãƒˆ ======
-function handleInputStart(y) {
+// ====== “ü—ÍƒCƒxƒ“ƒg ======
+function handleInputStart(y, x) {
     startY = y;
+    startX = x;
 }
-function handleInputEnd(y) {
+function handleInputEnd(y, x) {
     if (gameState === "play") {
         if (startY - y > 30 && currentLane > 0) currentLane--;
         if (y - startY > 30 && currentLane < laneY.length - 1) currentLane++;
-    } else if (gameState === "start" || gameState === "gameover") {
+    } else if (gameState === "start") {
         startGame();
+    } else if (gameState === "gameover") {
+        // ƒ{ƒ^ƒ“ƒ^ƒbƒv”»’è
+        if (x >= goButton.x && x <= goButton.x + goButton.w &&
+            y >= goButton.y && y <= goButton.y + goButton.h) {
+            gameState = "start";
+        }
     }
 }
 
-canvas.addEventListener("touchstart", e => handleInputStart(e.touches[0].clientY));
-canvas.addEventListener("touchend", e => handleInputEnd(e.changedTouches[0].clientY));
+canvas.addEventListener("touchstart", e => {
+    handleInputStart(e.touches[0].clientY, e.touches[0].clientX);
+});
+canvas.addEventListener("touchend", e => {
+    handleInputEnd(e.changedTouches[0].clientY, e.changedTouches[0].clientX);
+});
 
-canvas.addEventListener("mousedown", e => handleInputStart(e.clientY));
-canvas.addEventListener("mouseup", e => handleInputEnd(e.clientY));
+canvas.addEventListener("mousedown", e => {
+    handleInputStart(e.clientY, e.clientX);
+});
+canvas.addEventListener("mouseup", e => {
+    handleInputEnd(e.clientY, e.clientX);
+});
 
-// ====== ã‚²ãƒ¼ãƒ ãƒ«ãƒ¼ãƒ— ======
+// ====== ƒQ[ƒ€ƒ‹[ƒv ======
 function gameLoop() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -107,13 +125,13 @@ function gameLoop() {
         ctx.drawImage(startImg, 0, 0, canvas.width, canvas.height);
 
     } else if (gameState === "play") {
-        // èƒŒæ™¯ã‚¹ã‚¯ãƒ­ãƒ¼ãƒ«
+        // ”wŒiƒXƒNƒ[ƒ‹
         bgOffset -= 2;
         if (bgOffset <= -canvas.width) bgOffset = 0;
         ctx.drawImage(backgrounds[level - 1], bgOffset, 0, canvas.width, canvas.height);
         ctx.drawImage(backgrounds[level - 1], bgOffset + canvas.width, 0, canvas.width, canvas.height);
 
-        // éšœå®³ç‰©æç”»
+        // áŠQ•¨•`‰æ
         obstacles.forEach(obs => {
             obs.x -= obs.speed;
             if (obs.x < -50) {
@@ -126,13 +144,13 @@ function gameLoop() {
             obs.img = obstacleImgs[level - 1][obs.speed > 3 ? 1 : 0];
             ctx.drawImage(obs.img, obs.x, laneY[obs.lane], 50, 50);
 
-            // å½“ãŸã‚Šåˆ¤å®š
+            // “–‚½‚è”»’è
             if (Math.abs(playerX - obs.x) < 40 && currentLane === obs.lane) {
                 gameState = "gameover";
             }
         });
 
-        // ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã‚¢ãƒ‹ãƒ¡
+        // ƒvƒŒƒCƒ„[ƒAƒjƒ
         if (step % 20 < 10) {
             ctx.drawImage(playerImg1, playerX, laneY[currentLane], 50, 50);
         } else {
@@ -140,7 +158,7 @@ function gameLoop() {
         }
         step++;
 
-        // ã‚¹ã‚³ã‚¢è¡¨ç¤º
+        // ƒXƒRƒA•\¦
         ctx.fillStyle = "white";
         ctx.font = "20px Arial";
         ctx.fillText(`Score: ${score}`, 10, 30);
@@ -148,16 +166,27 @@ function gameLoop() {
 
     } else if (gameState === "gameover") {
         ctx.drawImage(gameOverImgs[level - 1], 0, 0, canvas.width, canvas.height);
+
+        // ƒXƒRƒA & ƒŒƒxƒ‹
         ctx.fillStyle = "white";
         ctx.font = "30px Arial";
         ctx.fillText(`Score: ${score}`, 10, 50);
         ctx.fillText(`Level: ${level}`, 10, 90);
+
+        // –ß‚éƒ{ƒ^ƒ“
+        ctx.fillStyle = "#222";
+        ctx.fillRect(goButton.x, goButton.y, goButton.w, goButton.h);
+        ctx.strokeStyle = "white";
+        ctx.strokeRect(goButton.x, goButton.y, goButton.w, goButton.h);
+        ctx.fillStyle = "white";
+        ctx.font = "20px Arial";
+        ctx.fillText("ƒXƒ^[ƒg‰æ–Ê‚É–ß‚é", goButton.x + 15, goButton.y + 30);
     }
 
     requestAnimationFrame(gameLoop);
 }
 
-// ====== å®Ÿè¡Œ ======
+// ====== Às ======
 loadAssets().then(() => {
     gameLoop();
 });
