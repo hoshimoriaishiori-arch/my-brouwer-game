@@ -7,11 +7,10 @@ document.body.addEventListener("touchmove", function(e) {
     e.preventDefault();
 }, { passive: false });
 
-// ====== 基本設定 ======
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
-let gameState = "start"; // start / play / gameover
+let gameState = "start";
 let score = 0;
 let level = 1;
 let step = 0;
@@ -20,18 +19,14 @@ let bgOffset = 0;
 let startY = 0;
 let startX = 0;
 
-// ====== 衝突制御 ======
 let isColliding = false;
 let collisionTimer = null;
 
-// ====== ゲームオーバーボタンの領域 ======
 let goButton = { x: 300, y: 500, w: 200, h: 50 };
 
-// ====== レーンのY座標 ======
 const laneY = [200, 300, 400];
 const playerX = 100;
 
-// ====== 画像読み込み関数 ======
 function loadImage(src) {
     return new Promise((resolve, reject) => {
         const img = new Image();
@@ -44,7 +39,6 @@ function loadImage(src) {
     });
 }
 
-// ====== 画像読み込み ======
 let playerImg1, playerImg2, backgrounds = [], obstacleImgs = [], startImg, gameOverImgs = [];
 
 async function loadAssets() {
@@ -68,7 +62,19 @@ async function loadAssets() {
     }
 }
 
-// ====== 障害物初期設定 ======
+// ====== 障害物スピード決定（50%遅い / 50%速い & レベル別上限） ======
+function getObstacleSpeed() {
+    if (Math.random() < 0.5) {
+        return 2; // 遅い障害物
+    } else {
+        let maxSpeed;
+        if (level <= 3) maxSpeed = 4;
+        else if (level <= 6) maxSpeed = 5;
+        else maxSpeed = 6;
+        return 2 + Math.random() * (maxSpeed - 2);
+    }
+}
+
 let obstacles = [];
 function initObstacles() {
     obstacles = [];
@@ -76,13 +82,12 @@ function initObstacles() {
         obstacles.push({
             x: canvas.width + i * 400,
             lane: Math.floor(Math.random() * 3),
-            speed: 2 + Math.random() * 3, // 2〜5
+            speed: getObstacleSpeed(),
             img: null
         });
     }
 }
 
-// ====== ゲーム開始処理 ======
 function startGame() {
     gameState = "play";
     score = 0;
@@ -94,7 +99,6 @@ function startGame() {
     initObstacles();
 }
 
-// ====== 衝突処理 ======
 function handleCollision() {
     if (!isColliding) {
         isColliding = true;
@@ -105,7 +109,6 @@ function handleCollision() {
     }
 }
 
-// ====== 入力イベント ======
 function handleInputStart(y, x) {
     startY = y;
     startX = x;
@@ -140,7 +143,6 @@ canvas.addEventListener("mouseup", e => {
     handleInputEnd(e.clientY, e.clientX);
 });
 
-// ====== ゲームループ ======
 function gameLoop() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -148,7 +150,6 @@ function gameLoop() {
         ctx.drawImage(startImg, 0, 0, canvas.width, canvas.height);
 
     } else if (gameState === "play") {
-        // 背景スクロール（衝突中は停止）
         if (!isColliding) {
             bgOffset -= 2;
             if (bgOffset <= -canvas.width) bgOffset = 0;
@@ -156,36 +157,31 @@ function gameLoop() {
         ctx.drawImage(backgrounds[level - 1], bgOffset, 0, canvas.width, canvas.height);
         ctx.drawImage(backgrounds[level - 1], bgOffset + canvas.width, 0, canvas.width, canvas.height);
 
-        // 障害物描画
         obstacles.forEach(obs => {
             if (!isColliding) obs.x -= obs.speed;
 
             if (obs.x < -50 && !isColliding) {
                 obs.x = canvas.width + Math.random() * 400;
                 obs.lane = Math.floor(Math.random() * 3);
-                obs.speed = 2 + Math.random() * 3; // 2〜5
+                obs.speed = getObstacleSpeed();
                 score++;
                 if (score % 10 === 0 && level < 9) level++;
             }
 
-            // 表示画像の切り替え（変更済み条件）
             obs.img = obstacleImgs[level - 1][obs.speed > 2 ? 1 : 0];
             ctx.drawImage(obs.img, obs.x, laneY[obs.lane], 50, 50);
 
-            // 当たり判定
             if (!isColliding && Math.abs(playerX - obs.x) < 40 && currentLane === obs.lane) {
                 handleCollision();
             }
         });
 
-        // プレイヤー描画
         if (step % 20 < 10) {
             ctx.drawImage(playerImg1, playerX, laneY[currentLane], 50, 50);
         } else {
             ctx.drawImage(playerImg2, playerX, laneY[currentLane], 50, 50);
         }
 
-        // 衝突エフェクト
         if (isColliding) {
             ctx.beginPath();
             ctx.arc(playerX + 25, laneY[currentLane] + 25, 30, 0, Math.PI * 2);
@@ -195,7 +191,6 @@ function gameLoop() {
 
         step++;
 
-        // スコア & レベル表示
         ctx.fillStyle = "white";
         ctx.font = "20px Arial";
         ctx.fillText(`Score: ${score}`, 10, 30);
@@ -221,7 +216,6 @@ function gameLoop() {
     requestAnimationFrame(gameLoop);
 }
 
-// ====== 実行 ======
 loadAssets().then(() => {
     gameLoop();
 });
