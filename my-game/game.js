@@ -1,126 +1,146 @@
+// ====== åŸºæœ¬è¨­å®š ======
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
-// ƒvƒŒƒCƒ„[‰æ‘œ
-let playerImg1 = new Image(); playerImg1.src = "images/player/girl1.png";
-let playerImg2 = new Image(); playerImg2.src = "images/player/girl2.png";
+let gameState = "start"; // start / play / gameover
+let score = 0;
+let level = 1;
+let step = 0;
+let currentLane = 0;
+let bgOffset = 0;
 
-// ”wŒi“Ç‚İ‚İ
-let backgrounds = [];
-for(let i=1;i<=9;i++){
+// ====== ãƒ¬ãƒ¼ãƒ³ã®Yåº§æ¨™ ======
+const laneY = [200, 300, 400];
+const playerX = 100;
+
+// ====== ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ç”»åƒ ======
+const playerImg1 = new Image();
+playerImg1.src = "images/player/girl1.png";
+const playerImg2 = new Image();
+playerImg2.src = "images/player/girl2.png";
+
+// ====== èƒŒæ™¯ç”»åƒï¼ˆãƒ¬ãƒ™ãƒ«1ï½9ï¼‰ ======
+const backgrounds = [];
+for (let i = 1; i <= 9; i++) {
     let bg = new Image();
     bg.src = `images/background/bg${i}.jpg`;
     backgrounds.push(bg);
 }
 
-// áŠQ•¨“Ç‚İ‚İ
-let obstacleImgs = [];
-for(let i=1;i<=9;i++){
-    let img1 = new Image(); img1.src = `images/obstacle/${i}_1.png`;
-    let img2 = new Image(); img2.src = `images/obstacle/${i}_2.png`;
-    obstacleImgs.push([img1,img2]);
+// ====== éšœå®³ç‰©ç”»åƒï¼ˆãƒ¬ãƒ™ãƒ«ã”ã¨ã«2ç¨®é¡ï¼‰ ======
+const obstacleImgs = [];
+for (let i = 1; i <= 9; i++) {
+    let img1 = new Image();
+    img1.src = `images/obstacle/${i}_1.png`;
+    let img2 = new Image();
+    img2.src = `images/obstacle/${i}_2.png`;
+    obstacleImgs.push([img1, img2]);
 }
 
-// ƒXƒ^[ƒg‰æ–ÊEƒQ[ƒ€ƒI[ƒo[
-let startImg = new Image(); startImg.src = "images/start.png";
-let gameOverImgs = [];
-for(let i=1;i<=9;i++){
+// ====== ã‚¹ã‚¿ãƒ¼ãƒˆãƒ»ã‚²ãƒ¼ãƒ ã‚ªãƒ¼ãƒãƒ¼ç”»åƒ ======
+const startImg = new Image();
+startImg.src = "images/start.png";
+
+const gameOverImgs = [];
+for (let i = 1; i <= 9; i++) {
     let img = new Image();
     img.src = `images/gameover${i}.png`;
     gameOverImgs.push(img);
 }
 
-// ƒvƒŒƒCƒ„[İ’è
-let playerX = 100;
-let laneY = [400,300,200];
-let currentLane = 0;
-let step = 0;
+// ====== éšœå®³ç‰©ã®åˆæœŸè¨­å®š ======
+let obstacles = [];
+for (let i = 0; i < 3; i++) {
+    obstacles.push({
+        x: canvas.width + i * 400,
+        lane: Math.floor(Math.random() * 3),
+        speed: 2 + Math.random() * 3,
+        img: null
+    });
+}
 
-// ”wŒiƒXƒNƒ[ƒ‹
-let bgOffset = 0;
+// ====== ã‚²ãƒ¼ãƒ é–‹å§‹å‡¦ç† ======
+function startGame() {
+    gameState = "play";
+    score = 0;
+    level = 1;
+    currentLane = 0;
+    bgOffset = 0;
+    obstacles.forEach((o, i) => {
+        o.x = canvas.width + i * 400;
+        o.lane = Math.floor(Math.random() * 3);
+        o.speed = 2 + Math.random() * 3;
+    });
+}
 
-// ƒXƒRƒAEƒŒƒxƒ‹
-let score = 0;
-let level = 1;
-
-// áŠQ•¨‰Šú”z’u
-let obstacles = [
-    {x:800, img: obstacleImgs[level-1][0], speed: 2},
-    {x:1200, img: obstacleImgs[level-1][1], speed: 4}
-];
-
-// ƒQ[ƒ€ó‘Ô
-let gameState = "start"; // start, play, gameover
-
-// ƒXƒƒCƒv‘€ì
-let startY = null;
-canvas.addEventListener("touchstart", e=>startY=e.touches[0].clientY);
-canvas.addEventListener("touchend", e=>{
+// ====== ã‚¹ãƒ¯ã‚¤ãƒ—æ“ä½œ ======
+let startY = 0;
+canvas.addEventListener("touchstart", e => {
+    startY = e.touches[0].clientY;
+});
+canvas.addEventListener("touchend", e => {
     let endY = e.changedTouches[0].clientY;
-    if(gameState==="play"){
-        if(startY-endY>30 && currentLane>0) currentLane--;
-        if(endY-startY>30 && currentLane<laneY.length-1) currentLane++;
-    } else if(gameState==="start" || gameState==="gameover"){
-        gameState = "play";
-        score = 0;
-        level = 1;
-        currentLane = 0;
-        bgOffset = 0;
-        obstacles.forEach((o,i)=>o.x=800+i*400);
+    if (gameState === "play") {
+        if (startY - endY > 30 && currentLane > 0) currentLane--;
+        if (endY - startY > 30 && currentLane < laneY.length - 1) currentLane++;
+    } else if (gameState === "start" || gameState === "gameover") {
+        startGame();
     }
 });
 
-// ƒQ[ƒ€ƒ‹[ƒv
-function gameLoop(){
-    ctx.clearRect(0,0,canvas.width,canvas.height);
+// ====== ã‚²ãƒ¼ãƒ ãƒ«ãƒ¼ãƒ— ======
+function gameLoop() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    if(gameState==="start"){
-        ctx.drawImage(startImg,0,0,canvas.width,canvas.height);
-    } else if(gameState==="play"){
-        // ”wŒiƒXƒNƒ[ƒ‹
+    if (gameState === "start") {
+        ctx.drawImage(startImg, 0, 0, canvas.width, canvas.height);
+
+    } else if (gameState === "play") {
+        // èƒŒæ™¯ã‚¹ã‚¯ãƒ­ãƒ¼ãƒ«
         bgOffset -= 2;
-        if(bgOffset <= -canvas.width) bgOffset = 0;
-        ctx.drawImage(backgrounds[level-1], bgOffset,0,canvas.width,canvas.height);
-        ctx.drawImage(backgrounds[level-1], bgOffset+canvas.width,0,canvas.width,canvas.height);
+        if (bgOffset <= -canvas.width) bgOffset = 0;
+        ctx.drawImage(backgrounds[level - 1], bgOffset, 0, canvas.width, canvas.height);
+        ctx.drawImage(backgrounds[level - 1], bgOffset + canvas.width, 0, canvas.width, canvas.height);
 
-        // áŠQ•¨•`‰æ
-        obstacles.forEach(obs=>{
+        // éšœå®³ç‰©æç”»
+        obstacles.forEach(obs => {
             obs.x -= obs.speed;
-            if(obs.x<-50){
-                obs.x = canvas.width + Math.random()*400;
+            if (obs.x < -50) {
+                obs.x = canvas.width + Math.random() * 400;
+                obs.lane = Math.floor(Math.random() * 3);
+                obs.speed = 2 + Math.random() * 3;
                 score++;
-                if(score%10===0 && level<9) level++;
+                if (score % 10 === 0 && level < 9) level++;
             }
-            let obsLane = Math.floor(Math.random()*3);
-            obs.img = obstacleImgs[level-1][obs.img===obstacleImgs[level-1][0]?0:1]; // ƒŒƒxƒ‹•ÏX‚É‰æ‘œXV
-            ctx.drawImage(obs.img, obs.x, laneY[obsLane], 50,50);
+            obs.img = obstacleImgs[level - 1][obs.speed > 3 ? 1 : 0];
+            ctx.drawImage(obs.img, obs.x, laneY[obs.lane], 50, 50);
 
-            // “–‚½‚è”»’è
-            if(Math.abs(playerX-obs.x)<40 && Math.abs(laneY[currentLane]-laneY[obsLane])<40){
-                gameState="gameover";
+            // å½“ãŸã‚Šåˆ¤å®š
+            if (Math.abs(playerX - obs.x) < 40 && currentLane === obs.lane) {
+                gameState = "gameover";
             }
         });
 
-        // ƒvƒŒƒCƒ„[•`‰æ
-        if(step%20<10){
-            ctx.drawImage(playerImg1,playerX,laneY[currentLane],50,50);
+        // ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼æç”»ï¼ˆèµ°ã‚‹ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ï¼‰
+        if (step % 20 < 10) {
+            ctx.drawImage(playerImg1, playerX, laneY[currentLane], 50, 50);
         } else {
-            ctx.drawImage(playerImg2,playerX,laneY[currentLane],50,50);
+            ctx.drawImage(playerImg2, playerX, laneY[currentLane], 50, 50);
         }
         step++;
 
-        // ƒXƒRƒAEƒŒƒxƒ‹•\¦
-        ctx.fillStyle="white";
-        ctx.font="20px Arial";
-        ctx.fillText(`Score: ${score}`,10,30);
-        ctx.fillText(`Level: ${level}`,10,60);
+        // ã‚¹ã‚³ã‚¢ãƒ»ãƒ¬ãƒ™ãƒ«è¡¨ç¤º
+        ctx.fillStyle = "white";
+        ctx.font = "20px Arial";
+        ctx.fillText(`Score: ${score}`, 10, 30);
+        ctx.fillText(`Level: ${level}`, 10, 60);
 
-    } else if(gameState==="gameover"){
-        ctx.drawImage(gameOverImgs[level-1],0,0,canvas.width,canvas.height);
-        ctx.fillStyle="white";
-        ctx.font="30px Arial";
-        ctx.fillText(`Score: ${score}`,10,50);
-        ctx.fillText(`Level: ${level}`,10,90);
+    } else if (gameState === "gameover") {
+        ctx.drawImage(gameOverImgs[level - 1], 0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "white";
+        ctx.font = "30px Arial";
+        ctx.fillText(`Score: ${score}`, 10, 50);
+        ctx.fillText(`Level: ${level}`, 10, 90);
     }
 
     requestAnimationFrame(gameLoop);
