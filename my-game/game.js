@@ -20,7 +20,11 @@ let bgOffset = 0;
 let startY = 0;
 let startX = 0;
 
-// ゲームオーバーボタンの領域
+// ====== 衝突制御 ======
+let isColliding = false;
+let collisionTimer = null;
+
+// ====== ゲームオーバーボタンの領域 ======
 let goButton = { x: 300, y: 500, w: 200, h: 50 };
 
 // ====== レーンのY座標 ======
@@ -72,7 +76,7 @@ function initObstacles() {
         obstacles.push({
             x: canvas.width + i * 400,
             lane: Math.floor(Math.random() * 3),
-            speed: 2 + Math.random() * 3,
+            speed: 2 + Math.random() * 3, // 2〜5
             img: null
         });
     }
@@ -85,7 +89,20 @@ function startGame() {
     level = 1;
     currentLane = 0;
     bgOffset = 0;
+    isColliding = false;
+    if (collisionTimer) clearTimeout(collisionTimer);
     initObstacles();
+}
+
+// ====== 衝突処理 ======
+function handleCollision() {
+    if (!isColliding) {
+        isColliding = true;
+        collisionTimer = setTimeout(() => {
+            gameState = "gameover";
+            isColliding = false;
+        }, 1000);
+    }
 }
 
 // ====== 入力イベント ======
@@ -95,8 +112,10 @@ function handleInputStart(y, x) {
 }
 function handleInputEnd(y, x) {
     if (gameState === "play") {
-        if (startY - y > 30 && currentLane > 0) currentLane--;
-        if (y - startY > 30 && currentLane < laneY.length - 1) currentLane++;
+        if (!isColliding) {
+            if (startY - y > 30 && currentLane > 0) currentLane--;
+            if (y - startY > 30 && currentLane < laneY.length - 1) currentLane++;
+        }
     } else if (gameState === "start") {
         startGame();
     } else if (gameState === "gameover") {
@@ -129,35 +148,54 @@ function gameLoop() {
         ctx.drawImage(startImg, 0, 0, canvas.width, canvas.height);
 
     } else if (gameState === "play") {
-        bgOffset -= 2;
-        if (bgOffset <= -canvas.width) bgOffset = 0;
+        // 背景スクロール（衝突中は停止）
+        if (!isColliding) {
+            bgOffset -= 2;
+            if (bgOffset <= -canvas.width) bgOffset = 0;
+        }
         ctx.drawImage(backgrounds[level - 1], bgOffset, 0, canvas.width, canvas.height);
         ctx.drawImage(backgrounds[level - 1], bgOffset + canvas.width, 0, canvas.width, canvas.height);
 
+        // 障害物描画
         obstacles.forEach(obs => {
-            obs.x -= obs.speed;
-            if (obs.x < -50) {
+            if (!isColliding) obs.x -= obs.speed;
+
+            if (obs.x < -50 && !isColliding) {
                 obs.x = canvas.width + Math.random() * 400;
                 obs.lane = Math.floor(Math.random() * 3);
-                obs.speed = 2 + Math.random() * 3;
+                obs.speed = 2 + Math.random() * 3; // 2〜5
                 score++;
                 if (score % 10 === 0 && level < 9) level++;
             }
-            obs.img = obstacleImgs[level - 1][obs.speed > 3 ? 1 : 0];
+
+            // 表示画像の切り替え（変更済み条件）
+            obs.img = obstacleImgs[level - 1][obs.speed > 2 ? 1 : 0];
             ctx.drawImage(obs.img, obs.x, laneY[obs.lane], 50, 50);
 
-            if (Math.abs(playerX - obs.x) < 40 && currentLane === obs.lane) {
-                gameState = "gameover";
+            // 当たり判定
+            if (!isColliding && Math.abs(playerX - obs.x) < 40 && currentLane === obs.lane) {
+                handleCollision();
             }
         });
 
+        // プレイヤー描画
         if (step % 20 < 10) {
             ctx.drawImage(playerImg1, playerX, laneY[currentLane], 50, 50);
         } else {
             ctx.drawImage(playerImg2, playerX, laneY[currentLane], 50, 50);
         }
+
+        // 衝突エフェクト
+        if (isColliding) {
+            ctx.beginPath();
+            ctx.arc(playerX + 25, laneY[currentLane] + 25, 30, 0, Math.PI * 2);
+            ctx.fillStyle = "rgba(255, 0, 0, 0.5)";
+            ctx.fill();
+        }
+
         step++;
 
+        // スコア & レベル表示
         ctx.fillStyle = "white";
         ctx.font = "20px Arial";
         ctx.fillText(`Score: ${score}`, 10, 30);
