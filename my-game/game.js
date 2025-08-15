@@ -146,6 +146,24 @@ function gameLoop() {
 
             // 当たり判定
             if (Math.abs(playerX - obs.x) < 40 && currentLane === obs.lane) {
+
+
+//衝突エフェクトと少しタメる
+
+  const flash = document.createElement("div");
+  flash.style.position = "absolute";
+  flash.style.width = player.offsetWidth + "px";
+  flash.style.height = player.offsetHeight + "px";
+  flash.style.left = player.offsetLeft + "px";
+  flash.style.bottom = player.style.bottom;
+  flash.style.background = "rgba(255,0,0,0.7)";
+  flash.style.borderRadius = "50%";
+  flash.style.zIndex = 20;
+  flash.style.animation = "flashAnim 0.8s ease-out forwards";
+  gameArea.appendChild(flash);
+  setTimeout(() => flash.remove(), 800);
+
+
                 gameState = "gameover";
             }
         });
@@ -186,52 +204,6 @@ function gameLoop() {
     requestAnimationFrame(gameLoop);
 }
 
-
-// ====== 衝突時のエフェクト関係 ======
-function endGame() {
-	if(gameOver) return;
-		gameOver = true;
-
-	// 障害物を止める
-	obstacles.forEach(obs => {
-    obs.dataset.speed = 0;
-  });
-
-  // 衝突エフェクト
-  const flash = document.createElement("div");
-  flash.style.position = "absolute";
-  flash.style.width = player.offsetWidth + "px";
-  flash.style.height = player.offsetHeight + "px";
-  flash.style.left = player.offsetLeft + "px";
-  flash.style.bottom = player.style.bottom;
-  flash.style.background = "rgba(255,0,0,0.7)";
-  flash.style.borderRadius = "50%";
-  flash.style.zIndex = 20;
-  flash.style.animation = "flashAnim 0.6s ease-out forwards";
-  gameArea.appendChild(flash);
-  setTimeout(() => flash.remove(), 600);
-
-  cancelAnimationFrame(gameLoopId);
-  clearTimeout(spawnTimerId);
-
-  // 少し待ってからゲームオーバー画面に
-  setTimeout(()=>{
-    gameOverScore.textContent = hud.textContent;
-    gameOverScreen.style.display="flex";
-  }, 800);
-};
-
-// ====== レベルアップエフェクト ======
-function levelUpEffect() {
-  const effect = document.createElement("div");
-  effect.classList.add("level-up");
-  effect.style.width = player.offsetWidth + "px";
-  effect.style.height = player.offsetHeight + "px";
-  effect.style.left = player.offsetLeft + "px";
-  effect.style.bottom = player.style.bottom;
-  gameArea.appendChild(effect);
-  setTimeout(()=>effect.remove(),500);
-}
 
 
 // ====== 実行 ======
