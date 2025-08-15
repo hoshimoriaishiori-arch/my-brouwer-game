@@ -1,4 +1,4 @@
-// ====== åŸºæœ¬è¨­å®š ======
+// ====== Šî–{İ’è ======
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
@@ -9,17 +9,17 @@ let step = 0;
 let currentLane = 0;
 let bgOffset = 0;
 
-// ====== ãƒ¬ãƒ¼ãƒ³ã®Yåº§æ¨™ ======
+// ====== ƒŒ[ƒ“‚ÌYÀ•W ======
 const laneY = [200, 300, 400];
 const playerX = 100;
 
-// ====== ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ç”»åƒ ======
+// ====== ƒvƒŒƒCƒ„[‰æ‘œ ======
 const playerImg1 = new Image();
 playerImg1.src = "images/player/girl1.png";
 const playerImg2 = new Image();
 playerImg2.src = "images/player/girl2.png";
 
-// ====== èƒŒæ™¯ç”»åƒï¼ˆãƒ¬ãƒ™ãƒ«1ï½9ï¼‰ ======
+// ====== ”wŒi‰æ‘œiƒŒƒxƒ‹1`9j ======
 const backgrounds = [];
 for (let i = 1; i <= 9; i++) {
     let bg = new Image();
@@ -27,7 +27,7 @@ for (let i = 1; i <= 9; i++) {
     backgrounds.push(bg);
 }
 
-// ====== éšœå®³ç‰©ç”»åƒï¼ˆãƒ¬ãƒ™ãƒ«ã”ã¨ã«2ç¨®é¡ï¼‰ ======
+// ====== áŠQ•¨‰æ‘œiƒŒƒxƒ‹‚²‚Æ‚É2í—Şj ======
 const obstacleImgs = [];
 for (let i = 1; i <= 9; i++) {
     let img1 = new Image();
@@ -37,7 +37,7 @@ for (let i = 1; i <= 9; i++) {
     obstacleImgs.push([img1, img2]);
 }
 
-// ====== ã‚¹ã‚¿ãƒ¼ãƒˆãƒ»ã‚²ãƒ¼ãƒ ã‚ªãƒ¼ãƒãƒ¼ç”»åƒ ======
+// ====== ƒXƒ^[ƒgEƒQ[ƒ€ƒI[ƒo[‰æ‘œ ======
 const startImg = new Image();
 startImg.src = "images/start.png";
 
@@ -48,7 +48,7 @@ for (let i = 1; i <= 9; i++) {
     gameOverImgs.push(img);
 }
 
-// ====== éšœå®³ç‰©ã®åˆæœŸè¨­å®š ======
+// ====== áŠQ•¨‚Ì‰Šúİ’è ======
 let obstacles = [];
 for (let i = 0; i < 3; i++) {
     obstacles.push({
@@ -59,7 +59,7 @@ for (let i = 0; i < 3; i++) {
     });
 }
 
-// ====== ã‚²ãƒ¼ãƒ é–‹å§‹å‡¦ç† ======
+// ====== ƒQ[ƒ€ŠJnˆ— ======
 function startGame() {
     gameState = "play";
     score = 0;
@@ -73,7 +73,7 @@ function startGame() {
     });
 }
 
-// ====== ã‚¹ãƒ¯ã‚¤ãƒ—æ“ä½œ ======
+// ====== ƒXƒƒCƒv‘€ì ======
 let startY = 0;
 canvas.addEventListener("touchstart", e => {
     startY = e.touches[0].clientY;
@@ -88,7 +88,7 @@ canvas.addEventListener("touchend", e => {
     }
 });
 
-// ====== ã‚²ãƒ¼ãƒ ãƒ«ãƒ¼ãƒ— ======
+// ====== ƒQ[ƒ€ƒ‹[ƒv ======
 function gameLoop() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -96,13 +96,13 @@ function gameLoop() {
         ctx.drawImage(startImg, 0, 0, canvas.width, canvas.height);
 
     } else if (gameState === "play") {
-        // èƒŒæ™¯ã‚¹ã‚¯ãƒ­ãƒ¼ãƒ«
+        // ”wŒiƒXƒNƒ[ƒ‹
         bgOffset -= 2;
         if (bgOffset <= -canvas.width) bgOffset = 0;
         ctx.drawImage(backgrounds[level - 1], bgOffset, 0, canvas.width, canvas.height);
         ctx.drawImage(backgrounds[level - 1], bgOffset + canvas.width, 0, canvas.width, canvas.height);
 
-        // éšœå®³ç‰©æç”»
+        // áŠQ•¨•`‰æ
         obstacles.forEach(obs => {
             obs.x -= obs.speed;
             if (obs.x < -50) {
@@ -115,13 +115,13 @@ function gameLoop() {
             obs.img = obstacleImgs[level - 1][obs.speed > 3 ? 1 : 0];
             ctx.drawImage(obs.img, obs.x, laneY[obs.lane], 50, 50);
 
-            // å½“ãŸã‚Šåˆ¤å®š
+            // “–‚½‚è”»’è
             if (Math.abs(playerX - obs.x) < 40 && currentLane === obs.lane) {
                 gameState = "gameover";
             }
         });
 
-        // ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼æç”»ï¼ˆèµ°ã‚‹ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ï¼‰
+        // ƒvƒŒƒCƒ„[•`‰æi‘–‚éƒAƒjƒ[ƒVƒ‡ƒ“j
         if (step % 20 < 10) {
             ctx.drawImage(playerImg1, playerX, laneY[currentLane], 50, 50);
         } else {
@@ -129,7 +129,7 @@ function gameLoop() {
         }
         step++;
 
-        // ã‚¹ã‚³ã‚¢ãƒ»ãƒ¬ãƒ™ãƒ«è¡¨ç¤º
+        // ƒXƒRƒAEƒŒƒxƒ‹•\¦
         ctx.fillStyle = "white";
         ctx.font = "20px Arial";
         ctx.fillText(`Score: ${score}`, 10, 30);
