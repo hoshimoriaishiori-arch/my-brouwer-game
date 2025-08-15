@@ -1,4 +1,4 @@
-// ====== Šî–{İ’è ======
+// ====== åŸºæœ¬è¨­å®š ======
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
@@ -10,47 +10,53 @@ let currentLane = 0;
 let bgOffset = 0;
 let startY = 0;
 
-// ====== ƒŒ[ƒ“‚ÌYÀ•W ======
+// ====== ãƒ¬ãƒ¼ãƒ³ã®Yåº§æ¨™ ======
 const laneY = [200, 300, 400];
 const playerX = 100;
 
-// ====== ‰æ‘œ“Ç‚İ‚İŠÖ” ======
+// ====== ç”»åƒèª­ã¿è¾¼ã¿é–¢æ•° ======
 function loadImage(src) {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
         const img = new Image();
         img.onload = () => resolve(img);
+        img.onerror = () => {
+            console.error("ç”»åƒèª­ã¿è¾¼ã¿å¤±æ•—:", src);
+            reject();
+        };
         img.src = src;
     });
 }
 
-// ====== ‰æ‘œ“Ç‚İ‚İ ======
+// ====== ç”»åƒèª­ã¿è¾¼ã¿ ======
 let playerImg1, playerImg2, backgrounds = [], obstacleImgs = [], startImg, gameOverImgs = [];
 
 async function loadAssets() {
-    // ƒvƒŒƒCƒ„[
+    // ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼
     playerImg1 = await loadImage("images/player/girl1.png");
     playerImg2 = await loadImage("images/player/girl2.png");
 
-    // ”wŒi
+    // èƒŒæ™¯ï¼ˆPNGï¼‰
     for (let i = 1; i <= 9; i++) {
-        backgrounds.push(await loadImage(`images/background/bg${i}.jpg`));
+        backgrounds.push(await loadImage(`images/background/bg${i}.png`));
     }
 
-    // áŠQ•¨
+    // éšœå®³ç‰©ï¼ˆPNGï¼‰
     for (let i = 1; i <= 9; i++) {
         const img1 = await loadImage(`images/obstacle/${i}_1.png`);
         const img2 = await loadImage(`images/obstacle/${i}_2.png`);
         obstacleImgs.push([img1, img2]);
     }
 
-    // ƒXƒ^[ƒg & ƒQ[ƒ€ƒI[ƒo[
+    // ã‚¹ã‚¿ãƒ¼ãƒˆç”»é¢
     startImg = await loadImage("images/start.png");
+
+    // ã‚²ãƒ¼ãƒ ã‚ªãƒ¼ãƒãƒ¼ç”»é¢ï¼ˆPNGï¼‰
     for (let i = 1; i <= 9; i++) {
         gameOverImgs.push(await loadImage(`images/gameover${i}.png`));
     }
 }
 
-// ====== áŠQ•¨‰Šúİ’è ======
+// ====== éšœå®³ç‰©åˆæœŸè¨­å®š ======
 let obstacles = [];
 function initObstacles() {
     obstacles = [];
@@ -64,7 +70,7 @@ function initObstacles() {
     }
 }
 
-// ====== ƒQ[ƒ€ŠJnˆ— ======
+// ====== ã‚²ãƒ¼ãƒ é–‹å§‹å‡¦ç† ======
 function startGame() {
     gameState = "play";
     score = 0;
@@ -74,7 +80,7 @@ function startGame() {
     initObstacles();
 }
 
-// ====== “ü—ÍƒCƒxƒ“ƒg ======
+// ====== å…¥åŠ›ã‚¤ãƒ™ãƒ³ãƒˆ ======
 function handleInputStart(y) {
     startY = y;
 }
@@ -93,7 +99,7 @@ canvas.addEventListener("touchend", e => handleInputEnd(e.changedTouches[0].clie
 canvas.addEventListener("mousedown", e => handleInputStart(e.clientY));
 canvas.addEventListener("mouseup", e => handleInputEnd(e.clientY));
 
-// ====== ƒQ[ƒ€ƒ‹[ƒv ======
+// ====== ã‚²ãƒ¼ãƒ ãƒ«ãƒ¼ãƒ— ======
 function gameLoop() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -101,13 +107,13 @@ function gameLoop() {
         ctx.drawImage(startImg, 0, 0, canvas.width, canvas.height);
 
     } else if (gameState === "play") {
-        // ”wŒiƒXƒNƒ[ƒ‹
+        // èƒŒæ™¯ã‚¹ã‚¯ãƒ­ãƒ¼ãƒ«
         bgOffset -= 2;
         if (bgOffset <= -canvas.width) bgOffset = 0;
         ctx.drawImage(backgrounds[level - 1], bgOffset, 0, canvas.width, canvas.height);
         ctx.drawImage(backgrounds[level - 1], bgOffset + canvas.width, 0, canvas.width, canvas.height);
 
-        // áŠQ•¨•`‰æ
+        // éšœå®³ç‰©æç”»
         obstacles.forEach(obs => {
             obs.x -= obs.speed;
             if (obs.x < -50) {
@@ -120,13 +126,13 @@ function gameLoop() {
             obs.img = obstacleImgs[level - 1][obs.speed > 3 ? 1 : 0];
             ctx.drawImage(obs.img, obs.x, laneY[obs.lane], 50, 50);
 
-            // “–‚½‚è”»’è
+            // å½“ãŸã‚Šåˆ¤å®š
             if (Math.abs(playerX - obs.x) < 40 && currentLane === obs.lane) {
                 gameState = "gameover";
             }
         });
 
-        // ƒvƒŒƒCƒ„[ƒAƒjƒ
+        // ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã‚¢ãƒ‹ãƒ¡
         if (step % 20 < 10) {
             ctx.drawImage(playerImg1, playerX, laneY[currentLane], 50, 50);
         } else {
@@ -134,7 +140,7 @@ function gameLoop() {
         }
         step++;
 
-        // ƒXƒRƒA•\¦
+        // ã‚¹ã‚³ã‚¢è¡¨ç¤º
         ctx.fillStyle = "white";
         ctx.font = "20px Arial";
         ctx.fillText(`Score: ${score}`, 10, 30);
@@ -151,7 +157,7 @@ function gameLoop() {
     requestAnimationFrame(gameLoop);
 }
 
-// ====== Às ======
+// ====== å®Ÿè¡Œ ======
 loadAssets().then(() => {
     gameLoop();
 });
