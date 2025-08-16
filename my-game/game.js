@@ -24,8 +24,10 @@ let collisionTimer = null;
 
 let goButton = { x: 300, y: 500, w: 200, h: 50 };
 
-const laneY = [200, 300, 400];
+// ====== レーン位置とキャラサイズ ======
+const laneY = [160, 280, 400];  // レーンを広めに配置
 const playerX = 100;
+const playerSize = 80; // 主人公の幅・高さ
 
 function loadImage(src) {
     return new Promise((resolve, reject) => {
@@ -191,20 +193,21 @@ function gameLoop() {
             obs.img = obstacleImgs[level - 1][obs.speed > 2 ? 1 : 0];
             ctx.drawImage(obs.img, obs.x, laneY[obs.lane], 50, 50);
 
-            if (!isColliding && Math.abs(playerX - obs.x) < 40 && currentLane === obs.lane) {
+            if (!isColliding && Math.abs(playerX - obs.x) < playerSize - 10 && currentLane === obs.lane) {
                 handleCollision();
             }
         });
 
+        // ====== 主人公を大きく表示 (80x80) ======
         if (step % 20 < 10) {
-            ctx.drawImage(playerImg1, playerX, laneY[currentLane], 50, 50);
+            ctx.drawImage(playerImg1, playerX, laneY[currentLane], playerSize, playerSize);
         } else {
-            ctx.drawImage(playerImg2, playerX, laneY[currentLane], 50, 50);
+            ctx.drawImage(playerImg2, playerX, laneY[currentLane], playerSize, playerSize);
         }
 
         if (isColliding) {
             ctx.beginPath();
-            ctx.arc(playerX + 25, laneY[currentLane] + 25, 30, 0, Math.PI * 2);
+            ctx.arc(playerX + playerSize/2, laneY[currentLane] + playerSize/2, 40, 0, Math.PI * 2);
             ctx.fillStyle = "rgba(255, 0, 0, 0.5)";
             ctx.fill();
         }
