@@ -1,12 +1,12 @@
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
-// ========= 設定（フォルダ構成に対応）=========
+// ========= フォルダ構成 =========
 const PATHS = {
   bg: "images/background/",
-  obs: "images/background/",
+  obs: "images/obstacle/",
   player: "images/player/",
-  ui: "images/", // loading.png はここを参照
+  ui: "images/", // loading.png
 };
 
 let gameState = "loading"; // "loading", "title", "playing", "gameover"
@@ -32,7 +32,7 @@ loadingImg.onerror = () => {
   console.error("❌ ERROR: loading.png が見つかりません（", loadingImg.src, "）");
 };
 
-// ===== 画像ロード関数（ログ付き） =====
+// ===== 画像ロード関数 =====
 function loadImage(name, src) {
   images[name] = new Image();
   images[name].src = src;
@@ -47,21 +47,21 @@ function loadImage(name, src) {
   };
 }
 
-// ===== 背景と障害物の画像をロード =====
+// ===== 背景と障害物をロード =====
 for (let i = 1; i <= 9; i++) {
   loadImage("bg" + i, `${PATHS.bg}bg${i}.png`);
   loadImage(i + "_1", `${PATHS.obs}${i}_1.png`);
   loadImage(i + "_2", `${PATHS.obs}${i}_2.png`);
 }
 
-// ===== プレイヤー画像（ファイル名変更に対応）=====
+// ===== プレイヤー画像 =====
 loadImage("player1", `${PATHS.player}girl1.png`);
 loadImage("player2", `${PATHS.player}girl2.png`);
 
 let playerFrame = 0;
 let frameCount = 0;
 
-// 背景スクロール用
+// 背景スクロール
 let bgX = 0;
 
 // ===== ゲームリセット =====
@@ -161,16 +161,16 @@ function updateGame() {
   bgX -= 2;
   if (bgX <= -canvas.width) bgX = 0;
 
-  // プレイヤーアニメーション（2枚切替）
+  // プレイヤーアニメーション
   if (frameCount % 20 === 0) {
     playerFrame = (playerFrame + 1) % 2;
   }
 
-  // 障害物生成（レベルが上がるほど頻度UP & 速度上限UP）
+  // 障害物生成
   obstacleTimer++;
   if (obstacleTimer > 100 - level * 5) {
-    const isSlow = Math.random() < 0.5; // 50%で遅い
-    let speed = isSlow ? 2 : 2 + Math.floor(Math.random() * level); // 速い方はレベルで上限UP
+    const isSlow = Math.random() < 0.5; 
+    let speed = isSlow ? 2 : 2 + Math.floor(Math.random() * level);
     let type = isSlow ? "_1" : "_2";
 
     obstacles.push({
@@ -184,7 +184,7 @@ function updateGame() {
     obstacleTimer = 0;
   }
 
-  // 障害物移動 & 画面外処理
+  // 障害物移動 & 消去
   for (let i = obstacles.length - 1; i >= 0; i--) {
     obstacles[i].x -= obstacles[i].speed;
     if (obstacles[i].x + obstacles[i].width < 0) {
@@ -206,7 +206,7 @@ function updateGame() {
     }
   }
 
-  // プレイヤーの位置更新（レーン中央に配置）
+  // プレイヤーの位置
   player.y = lanes[player.lane] - player.height / 2;
 }
 
@@ -217,8 +217,8 @@ function drawGame() {
   ctx.drawImage(bg, bgX, 0, canvas.width, canvas.height);
   ctx.drawImage(bg, bgX + canvas.width, 0, canvas.width, canvas.height);
 
-  // プレイヤー（girl1/girl2）
-  let playerImgKey = "player" + (playerFrame + 1); // "player1" or "player2"
+  // プレイヤー
+  let playerImgKey = "player" + (playerFrame + 1);
   let playerImg = images[playerImgKey];
   ctx.drawImage(playerImg, player.x, player.y, player.width, player.height);
 
@@ -227,7 +227,7 @@ function drawGame() {
     ctx.drawImage(images[obs.img], obs.x, obs.y, obs.width, obs.height);
   }
 
-  // スコア＆レベル（左下・白縁取り）
+  // スコア＆レベル
   ctx.font = "20px Arial";
   ctx.lineWidth = 4;
   ctx.strokeStyle = "white";
@@ -260,7 +260,7 @@ function drawGameOver() {
   ctx.fillText("タップでタイトルに戻る", canvas.width / 2 - 120, canvas.height / 2 + 100);
 }
 
-// ===== 入力処理（クリック）=====
+// ===== 入力処理 =====
 canvas.addEventListener("click", () => {
   if (gameState === "title") {
     startGame();
