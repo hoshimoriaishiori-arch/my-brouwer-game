@@ -12,14 +12,19 @@ const PATHS = {
 let gameState = "loading"; // "loading", "title", "playing", "gameover"
 let score = 0;
 let level = 1;
-let player = { x: 100, y: 0, width: 60, height: 60, lane: 1 };
+let player = { x: 100, y: 0, width: 80, height: 80, lane: 1 };
 let obstacles = [];
 let obstacleTimer = 0;
 let images = {};
 let assetsToLoad = 30; // 背景9 + 障害物18 + プレイヤー2 + ローディング1
 let assetsLoaded = 0;
 
-const lanes = [canvas.height / 6, canvas.height / 2, (canvas.height * 5) / 6];
+// レーン（下寄りに修正）
+const lanes = [
+  canvas.height * 0.35,
+  canvas.height * 0.55,
+  canvas.height * 0.75
+];
 
 // ===== ロード画面の画像 =====
 const loadingImg = new Image();
@@ -169,7 +174,7 @@ function updateGame() {
   // 障害物生成
   obstacleTimer++;
   if (obstacleTimer > 100 - level * 5) {
-    const isSlow = Math.random() < 0.5; 
+    const isSlow = Math.random() < 0.5;
     let speed = isSlow ? 2 : 2 + Math.floor(Math.random() * level);
     let type = isSlow ? "_1" : "_2";
 
@@ -227,7 +232,7 @@ function drawGame() {
     ctx.drawImage(images[obs.img], obs.x, obs.y, obs.width, obs.height);
   }
 
-  // スコア＆レベル
+  // スコア＆レベル（左下表示＋アウトライン）
   ctx.font = "20px Arial";
   ctx.lineWidth = 4;
   ctx.strokeStyle = "white";
@@ -271,10 +276,14 @@ canvas.addEventListener("click", () => {
 
 // ===== スワイプで上下移動 =====
 let touchStartY = null;
+
 canvas.addEventListener("touchstart", (e) => {
+  e.preventDefault(); // ← スクロール防止
   touchStartY = e.touches[0].clientY;
-});
+}, { passive: false });
+
 canvas.addEventListener("touchend", (e) => {
+  e.preventDefault(); // ← スクロール防止
   let touchEndY = e.changedTouches[0].clientY;
   if (touchStartY !== null) {
     if (touchEndY < touchStartY - 30 && player.lane > 0) {
@@ -284,7 +293,7 @@ canvas.addEventListener("touchend", (e) => {
     }
   }
   touchStartY = null;
-});
+}, { passive: false });
 
 // ===== ループ開始 =====
 gameLoop();
