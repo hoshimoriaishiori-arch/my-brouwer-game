@@ -18,14 +18,24 @@ const loadingImg = new Image();
 loadingImg.src = "images/loading.png";
 loadingImg.onload = () => {
     assetsLoaded++;
+    console.log("✅ loaded:", "loading.png", `(${assetsLoaded}/${assetsToLoad})`);
+};
+loadingImg.onerror = () => {
+    console.error("❌ ERROR: loading.png が見つかりません");
 };
 
 // 画像ロード関数
 function loadImage(name, src) {
     images[name] = new Image();
     images[name].src = src;
+
     images[name].onload = () => {
         assetsLoaded++;
+        console.log("✅ loaded:", src, `(${assetsLoaded}/${assetsToLoad})`);
+    };
+
+    images[name].onerror = () => {
+        console.error("❌ ERROR:", src, "が見つかりません");
     };
 }
 
@@ -103,6 +113,7 @@ function drawLoading() {
     ctx.fillText(percent + "%", canvas.width / 2 - 20, canvas.height - 65);
 
     if (assetsLoaded >= assetsToLoad) {
+        console.log("🎉 すべての画像ロードが完了しました！");
         setTimeout(() => {
             gameState = "title";
         }, 500);
@@ -186,16 +197,13 @@ function updateGame() {
 
 // プレイ中の描画
 function drawGame() {
-    // 背景
     let bg = images["bg" + level];
     ctx.drawImage(bg, bgX, 0, canvas.width, canvas.height);
     ctx.drawImage(bg, bgX + canvas.width, 0, canvas.width, canvas.height);
 
-    // プレイヤー
     let playerImg = images["player" + (playerFrame + 1)];
     ctx.drawImage(playerImg, player.x, player.y, player.width, player.height);
 
-    // 障害物
     for (let obs of obstacles) {
         ctx.drawImage(images[obs.img], obs.x, obs.y, obs.width, obs.height);
     }
