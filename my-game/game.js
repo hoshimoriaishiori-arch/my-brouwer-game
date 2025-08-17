@@ -8,7 +8,7 @@ let player = { x: 100, y: 0, width: 60, height: 60, lane: 1 };
 let obstacles = [];
 let obstacleTimer = 0;
 let images = {};
-let assetsToLoad = 28; // 背景9枚 + 障害物18枚 + UI1枚
+let assetsToLoad = 30; // 背景9 + 障害物18 + プレイヤー2 + ローディング1
 let assetsLoaded = 0;
 
 const lanes = [canvas.height / 6, canvas.height / 2, (canvas.height * 5) / 6];
