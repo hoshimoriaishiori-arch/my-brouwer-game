@@ -7,10 +7,12 @@ document.body.addEventListener("touchmove", function(e) {
     e.preventDefault();
 }, { passive: false });
 
+// ====== Canvas ======
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
-let gameState = "loading"; // 初期状態はローディング
+// ====== ゲーム状態 ======
+let gameState = "loading"; // loading -> start -> play -> gameover
 let loadingProgress = 0;
 let totalImages = 0;
 let loadedImages = 0;
@@ -33,69 +35,90 @@ const laneY = [160, 280, 400];
 const playerX = 100;
 const playerSize = 80;
 
-// ====== 画像格納用 ======
-let playerImg1, playerImg2, backgrounds = [], obstacleImgs = [], startImg, gameOverImgs = [], loadingImg;
+// ====== 画像置き場 ======
+let playerImg1, playerImg2;
+let backgrounds = Array(9).fill(null);
+let obstacleImgs = Array.from({ length: 9 }, () => Array(2).fill(null));
+let startImg, loadingImg;
+let gameOverImgs = Array(9).fill(null);
 
-// ====== 画像リスト ======
-const imageSources = {
+// ====== ロード対象一覧 ======
+const imagePaths = {
+    loading: "images/loading.png",
     player: ["images/player/girl1.png", "images/player/girl2.png"],
-    backgrounds: Array.from({length: 9}, (_,i)=>`images/background/bg${i+1}.png`),
-    obstacles: Array.from({length: 9}, (_,i)=>[`images/obstacle/${i+1}_1.png`, `images/obstacle/${i+1}_2.png`]),
-    start: ["images/start.png"],
-    gameovers: Array.from({length: 9}, (_,i)=>`images/gameover${i+1}.png`)
+    backgrounds: Array.from({length: 9}, (_, i) => `images/background/bg${i+1}.png`),
+    obstacles: Array.from({length: 9}, (_, i) => [`images/obstacle/${i+1}_1.png`, `images/obstacle/${i+1}_2.png`]),
+    start: "images/start.png",
+    gameovers: Array.from({length: 9}, (_, i) => `images/gameover${i+1}.png`)
 };
 
-// ====== 画像プリロード ======
+// ====== 画像プリロード（エラーでも先に進む・インデックスズレ無し） ======
 function preloadImages() {
-    totalImages = 1 // loading.png 追加分
-                + imageSources.player.length
-                + imageSources.backgrounds.length
-                + imageSources.obstacles.flat().length
-                + imageSources.start.length
-                + imageSources.gameovers.length;
+    totalImages =
+        1 + // loading
+        imagePaths.player.length +
+        imagePaths.backgrounds.length +
+        imagePaths.obstacles.flat().length +
+        1 + // start
+        imagePaths.gameovers.length;
 
     return new Promise((resolve) => {
-        function load(src) {
-            return new Promise((res, rej) => {
-                const img = new Image();
-                img.onload = () => { loadedImages++; res(img); };
-                img.onerror = rej;
-                img.src = src;
-            });
-        }
+        const makePlaceholderImage = () => {
+            const c = document.createElement("canvas");
+            c.width = 1; c.height = 1;
+            const img = new Image();
+            img.src = c.toDataURL();
+            return img;
+        };
 
-        Promise.all([
-            load("images/loading.png"), // ローディング画面用
-            ...imageSources.player.map(load),
-            ...imageSources.backgrounds.map(load),
-            ...imageSources.obstacles.flat().map(load),
-            ...imageSources.start.map(load),
-            ...imageSources.gameovers.map(load)
-        ]).then(results => {
-            let idx = 0;
-            loadingImg = results[idx++];
+        const tick = () => {
+            loadedImages++;
+            if (loadedImages >= totalImages) resolve();
+        };
 
-            playerImg1 = results[idx++];
-            playerImg2 = results[idx++];
-            backgrounds = results.slice(idx, idx+9); idx += 9;
+        const loadOne = (src, assign) => {
+            const img = new Image();
+            img.onload = () => { assign(img); tick(); };
+            img.onerror = () => {
+                console.error("画像が見つかりません:", src);
+                assign(makePlaceholderImage());
+                tick();
+            };
+            img.src = src;
+        };
 
-            obstacleImgs = [];
-            for (let i=0;i<9;i++){
-                obstacleImgs.push([results[idx++], results[idx++]]);
-            }
+        // loading
+        loadOne(imagePaths.loading, (img) => { loadingImg = img; });
 
-            startImg = results[idx++];
-            gameOverImgs = results.slice(idx, idx+9);
+        // player
+        loadOne(imagePaths.player[0], (img) => { playerImg1 = img; });
+        loadOne(imagePaths.player[1], (img) => { playerImg2 = img; });
 
-            resolve();
+        // backgrounds
+        imagePaths.backgrounds.forEach((src, i) => {
+            loadOne(src, (img) => { backgrounds[i] = img; });
+        });
+
+        // obstacles
+        imagePaths.obstacles.forEach((pair, i) => {
+            loadOne(pair[0], (img) => { obstacleImgs[i][0] = img; });
+            loadOne(pair[1], (img) => { obstacleImgs[i][1] = img; });
+        });
+
+        // start
+        loadOne(imagePaths.start, (img) => { startImg = img; });
+
+        // gameovers
+        imagePaths.gameovers.forEach((src, i) => {
+            loadOne(src, (img) => { gameOverImgs[i] = img; });
         });
     });
 }
 
-// ====== 障害物スピード ======
+// ====== 障害物スピード（50%遅い=2 / 50%速い>2、レベルで上限UP） ======
 function getObstacleSpeed() {
     if (Math.random() < 0.5) {
-        return 2; // 遅い障害物
+        return 2; // 遅い
     } else {
         let maxSpeed;
         if (level <= 3) maxSpeed = 4;
@@ -105,11 +128,11 @@ function getObstacleSpeed() {
     }
 }
 
-// ====== レベル別障害物数 ======
+// ====== レベル別の障害物数 ======
 function getObstacleCount() {
     if (level <= 3) return 3;
     if (level <= 6) return 4;
-    return 5;
+    return 5; // 7〜9
 }
 
 let obstacles = [];
@@ -167,13 +190,13 @@ function handleInputEnd(y, x) {
     }
 }
 
+// ====== 入力イベント ======
 canvas.addEventListener("touchstart", e => {
     handleInputStart(e.touches[0].clientY, e.touches[0].clientX);
 });
 canvas.addEventListener("touchend", e => {
     handleInputEnd(e.changedTouches[0].clientY, e.changedTouches[0].clientX);
 });
-
 canvas.addEventListener("mousedown", e => {
     handleInputStart(e.clientY, e.clientX);
 });
@@ -181,15 +204,26 @@ canvas.addEventListener("mouseup", e => {
     handleInputEnd(e.clientY, e.clientX);
 });
 
+// ====== メインループ ======
 function gameLoop() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     if (gameState === "loading") {
-        // イラスト付きローディング画面
-        ctx.drawImage(loadingImg, 0, 0, canvas.width, canvas.height);
+        // 背景（ローディング画像の読み込み前でも真っ黒にはしない）
+        ctx.fillStyle = "black";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+        if (loadingImg) {
+            ctx.drawImage(loadingImg, 0, 0, canvas.width, canvas.height);
+        } else {
+            // まだ画像が読めてない場合の暫定表示
+            ctx.fillStyle = "white";
+            ctx.font = "30px Arial";
+            ctx.fillText("Loading...", canvas.width / 2 - 60, canvas.height / 2);
+        }
+
+        // 進捗バー
         loadingProgress = Math.floor((loadedImages / totalImages) * 100);
-
         const barWidth = 400;
         const barHeight = 20;
         const barX = (canvas.width - barWidth) / 2;
@@ -199,11 +233,11 @@ function gameLoop() {
         ctx.strokeRect(barX, barY, barWidth, barHeight);
 
         ctx.fillStyle = "lime";
-        ctx.fillRect(barX, barY, (loadingProgress/100) * barWidth, barHeight);
+        ctx.fillRect(barX, barY, (loadingProgress / 100) * barWidth, barHeight);
 
         ctx.fillStyle = "white";
         ctx.font = "20px Arial";
-        ctx.fillText(`${loadingProgress}%`, barX + barWidth/2 - 20, barY - 10);
+        ctx.fillText(`${loadingProgress}%`, barX + barWidth / 2 - 20, barY - 10);
 
         if (loadedImages >= totalImages) {
             gameState = "start";
@@ -213,13 +247,16 @@ function gameLoop() {
         ctx.drawImage(startImg, 0, 0, canvas.width, canvas.height);
 
     } else if (gameState === "play") {
+        // 背景スクロール
         if (!isColliding) {
             bgOffset -= 2;
             if (bgOffset <= -canvas.width) bgOffset = 0;
         }
-        ctx.drawImage(backgrounds[level - 1], bgOffset, 0, canvas.width, canvas.height);
-        ctx.drawImage(backgrounds[level - 1], bgOffset + canvas.width, 0, canvas.width, canvas.height);
+        const bg = backgrounds[level - 1] || backgrounds[0];
+        ctx.drawImage(bg, bgOffset, 0, canvas.width, canvas.height);
+        ctx.drawImage(bg, bgOffset + canvas.width, 0, canvas.width, canvas.height);
 
+        // 障害物
         obstacles.forEach(obs => {
             if (!isColliding) obs.x -= obs.speed;
 
@@ -229,10 +266,11 @@ function gameLoop() {
                 obs.speed = getObstacleSpeed();
                 score++;
 
+                // レベルアップ＆必要数まで障害物を追加
                 if (score % 10 === 0 && level < 9) {
                     level++;
-                    const desiredCount = getObstacleCount();
-                    while (obstacles.length < desiredCount) {
+                    const desired = getObstacleCount();
+                    while (obstacles.length < desired) {
                         obstacles.push({
                             x: canvas.width + Math.random() * 400,
                             lane: Math.floor(Math.random() * 3),
@@ -243,42 +281,50 @@ function gameLoop() {
                 }
             }
 
-            obs.img = obstacleImgs[level - 1][obs.speed > 2 ? 1 : 0];
+            // 表示画像：speed=2 → 遅い(インデックス0)、>2 → 速い(インデックス1)
+            const imgPair = obstacleImgs[level - 1] || obstacleImgs[0];
+            obs.img = imgPair[obs.speed > 2 ? 1 : 0] || imgPair[0];
             ctx.drawImage(obs.img, obs.x, laneY[obs.lane], 50, 50);
 
+            // 当たり判定
             if (!isColliding && Math.abs(playerX - obs.x) < playerSize - 10 && currentLane === obs.lane) {
                 handleCollision();
             }
         });
 
+        // 主人公（2枚交互）
         if (step % 20 < 10) {
             ctx.drawImage(playerImg1, playerX, laneY[currentLane], playerSize, playerSize);
         } else {
             ctx.drawImage(playerImg2, playerX, laneY[currentLane], playerSize, playerSize);
         }
 
+        // ヒット演出
         if (isColliding) {
             ctx.beginPath();
-            ctx.arc(playerX + playerSize/2, laneY[currentLane] + playerSize/2, 40, 0, Math.PI * 2);
+            ctx.arc(playerX + playerSize / 2, laneY[currentLane] + playerSize / 2, 40, 0, Math.PI * 2);
             ctx.fillStyle = "rgba(255, 0, 0, 0.5)";
             ctx.fill();
         }
 
         step++;
 
+        // スコア＆レベル
         ctx.fillStyle = "white";
         ctx.font = "20px Arial";
         ctx.fillText(`Score: ${score}`, 10, 30);
         ctx.fillText(`Level: ${level}`, 10, 60);
 
     } else if (gameState === "gameover") {
-        ctx.drawImage(gameOverImgs[level - 1], 0, 0, canvas.width, canvas.height);
+        const gov = gameOverImgs[level - 1] || gameOverImgs[0];
+        ctx.drawImage(gov, 0, 0, canvas.width, canvas.height);
 
         ctx.fillStyle = "white";
         ctx.font = "30px Arial";
         ctx.fillText(`Score: ${score}`, 10, 50);
         ctx.fillText(`Level: ${level}`, 10, 90);
 
+        // 戻るボタン
         ctx.fillStyle = "#222";
         ctx.fillRect(goButton.x, goButton.y, goButton.w, goButton.h);
         ctx.strokeStyle = "white";
@@ -291,7 +337,8 @@ function gameLoop() {
     requestAnimationFrame(gameLoop);
 }
 
+// ====== 起動 ======
 preloadImages().then(() => {
-    console.log("All images queued for loading...");
+    console.log("All images requested.");
 });
 gameLoop();
