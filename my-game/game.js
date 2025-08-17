@@ -1,299 +1,352 @@
+// ====== スクロール固定（スマホ対策） ======
+document.body.addEventListener("touchstart", function(e) {
+    e.preventDefault();
+}, { passive: false });
+
+document.body.addEventListener("touchmove", function(e) {
+    e.preventDefault();
+}, { passive: false });
+
+// ====== Canvas ======
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
-// ========= フォルダ構成 =========
-const PATHS = {
-  bg: "images/background/",
-  obs: "images/obstacle/",
-  player: "images/player/",
-  ui: "images/", // loading.png
-};
+// ====== ゲーム状態 ======
+let gameState = "loading"; // loading -> start -> play -> gameover
+let loadingProgress = 0;
+let totalImages = 0;
+let loadedImages = 0;
 
-let gameState = "loading"; // "loading", "title", "playing", "gameover"
 let score = 0;
 let level = 1;
-let player = { x: 100, y: 0, width: 80, height: 80, lane: 1 };
-let obstacles = [];
-let obstacleTimer = 0;
-let images = {};
-let assetsToLoad = 30; // 背景9 + 障害物18 + プレイヤー2 + ローディング1
-let assetsLoaded = 0;
+let step = 0;
+let currentLane = 0;
+let bgOffset = 0;
+let startY = 0;
+let startX = 0;
 
-// レーン（下寄りに修正）
-const lanes = [
-  canvas.height * 0.35,
-  canvas.height * 0.55,
-  canvas.height * 0.75
-];
+let isColliding = false;
+let collisionTimer = null;
 
-// ===== ロード画面の画像 =====
-const loadingImg = new Image();
-loadingImg.src = PATHS.ui + "loading.png";
-loadingImg.onload = () => {
-  assetsLoaded++;
-  console.log("✅ loaded:", "loading.png", `(${assetsLoaded}/${assetsToLoad})`);
+let goButton = { x: 300, y: 500, w: 200, h: 50 };
+
+// ====== レーン位置とキャラサイズ ======
+const laneY = [160, 280, 400];
+const playerX = 100;
+const playerSize = 80;
+
+// ====== 画像置き場 ======
+let playerImg1, playerImg2;
+let backgrounds = Array(9).fill(null);
+let obstacleImgs = Array.from({ length: 9 }, () => Array(2).fill(null));
+let startImg, loadingImg;
+let gameOverImgs = Array(9).fill(null);
+
+// ====== ロード対象一覧 ======
+const imagePaths = {
+    loading: "images/loading.png",
+    player: ["images/player/girl1.png", "images/player/girl2.png"],
+    backgrounds: Array.from({length: 9}, (_, i) => `images/background/bg${i+1}.png`),
+    obstacles: Array.from({length: 9}, (_, i) => [`images/obstacle/${i+1}_1.png`, `images/obstacle/${i+1}_2.png`]),
+    start: "images/start.png",
+    gameovers: Array.from({length: 9}, (_, i) => `images/gameover${i+1}.png`)
 };
-loadingImg.onerror = () => {
-  console.error("❌ ERROR: loading.png が見つかりません（", loadingImg.src, "）");
-};
 
-// ===== 画像ロード関数 =====
-function loadImage(name, src) {
-  images[name] = new Image();
-  images[name].src = src;
+// ====== 画像プリロード（エラーでも先に進む・インデックスズレ無し） ======
+function preloadImages() {
+    totalImages =
+        1 + // loading
+        imagePaths.player.length +
+        imagePaths.backgrounds.length +
+        imagePaths.obstacles.flat().length +
+        1 + // start
+        imagePaths.gameovers.length;
 
-  images[name].onload = () => {
-    assetsLoaded++;
-    console.log("✅ loaded:", src, `(${assetsLoaded}/${assetsToLoad})`);
-  };
+    return new Promise((resolve) => {
+        const makePlaceholderImage = () => {
+            const c = document.createElement("canvas");
+            c.width = 1; c.height = 1;
+            const img = new Image();
+            img.src = c.toDataURL();
+            return img;
+        };
 
-  images[name].onerror = () => {
-    console.error("❌ ERROR:", src, "が見つかりません");
-  };
-}
+        const tick = () => {
+            loadedImages++;
+            if (loadedImages >= totalImages) resolve();
+        };
 
-// ===== 背景と障害物をロード =====
-for (let i = 1; i <= 9; i++) {
-  loadImage("bg" + i, `${PATHS.bg}bg${i}.png`);
-  loadImage(i + "_1", `${PATHS.obs}${i}_1.png`);
-  loadImage(i + "_2", `${PATHS.obs}${i}_2.png`);
-}
+        const loadOne = (src, assign) => {
+            const img = new Image();
+            img.onload = () => { assign(img); tick(); };
+            img.onerror = () => {
+                console.error("画像が見つかりません:", src);
+                assign(makePlaceholderImage());
+                tick();
+            };
+            img.src = src;
+        };
 
-// ===== プレイヤー画像 =====
-loadImage("player1", `${PATHS.player}girl1.png`);
-loadImage("player2", `${PATHS.player}girl2.png`);
+        // loading
+        loadOne(imagePaths.loading, (img) => { loadingImg = img; });
 
-let playerFrame = 0;
-let frameCount = 0;
+        // player
+        loadOne(imagePaths.player[0], (img) => { playerImg1 = img; });
+        loadOne(imagePaths.player[1], (img) => { playerImg2 = img; });
 
-// 背景スクロール
-let bgX = 0;
+        // backgrounds
+        imagePaths.backgrounds.forEach((src, i) => {
+            loadOne(src, (img) => { backgrounds[i] = img; });
+        });
 
-// ===== ゲームリセット =====
-function resetGame() {
-  score = 0;
-  level = 1;
-  obstacles = [];
-  obstacleTimer = 0;
-  player.lane = 1;
-  player.y = lanes[player.lane] - player.height / 2;
-  bgX = 0;
-}
+        // obstacles
+        imagePaths.obstacles.forEach((pair, i) => {
+            loadOne(pair[0], (img) => { obstacleImgs[i][0] = img; });
+            loadOne(pair[1], (img) => { obstacleImgs[i][1] = img; });
+        });
 
-// ===== ゲーム開始 =====
-function startGame() {
-  resetGame();
-  gameState = "playing";
-}
+        // start
+        loadOne(imagePaths.start, (img) => { startImg = img; });
 
-// ===== ゲームオーバー =====
-function gameOver() {
-  gameState = "gameover";
-}
-
-// ===== メインループ =====
-function gameLoop() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-  if (gameState === "loading") {
-    drawLoading();
-  } else if (gameState === "title") {
-    drawTitle();
-  } else if (gameState === "playing") {
-    updateGame();
-    drawGame();
-  } else if (gameState === "gameover") {
-    drawGameOver();
-  }
-
-  requestAnimationFrame(gameLoop);
-}
-
-// ===== ローディング画面 =====
-function drawLoading() {
-  ctx.drawImage(loadingImg, 0, 0, canvas.width, canvas.height);
-  let percent = Math.floor((assetsLoaded / assetsToLoad) * 100);
-
-  // 進捗バー
-  ctx.fillStyle = "gray";
-  ctx.fillRect(canvas.width / 4, canvas.height - 60, canvas.width / 2, 20);
-
-  ctx.fillStyle = "green";
-  ctx.fillRect(
-    canvas.width / 4,
-    canvas.height - 60,
-    (canvas.width / 2) * (percent / 100),
-    20
-  );
-
-  ctx.font = "20px Arial";
-  ctx.fillStyle = "white";
-  ctx.fillText(percent + "%", canvas.width / 2 - 20, canvas.height - 65);
-
-  if (assetsLoaded >= assetsToLoad) {
-    console.log("🎉 すべての画像ロードが完了しました！");
-    setTimeout(() => {
-      gameState = "title";
-    }, 500);
-  }
-}
-
-// ===== タイトル画面 =====
-function drawTitle() {
-  ctx.fillStyle = "skyblue";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  ctx.font = "40px Arial";
-  ctx.lineWidth = 6;
-  ctx.strokeStyle = "white";
-  ctx.fillStyle = "black";
-  ctx.strokeText("RUN GAME", canvas.width / 2 - 100, canvas.height / 2 - 40);
-  ctx.fillText("RUN GAME", canvas.width / 2 - 100, canvas.height / 2 - 40);
-
-  ctx.font = "24px Arial";
-  ctx.lineWidth = 4;
-  ctx.strokeStyle = "white";
-  ctx.fillStyle = "black";
-  ctx.strokeText("タップでスタート", canvas.width / 2 - 80, canvas.height / 2 + 40);
-  ctx.fillText("タップでスタート", canvas.width / 2 - 80, canvas.height / 2 + 40);
-}
-
-// ===== プレイ中の更新 =====
-function updateGame() {
-  frameCount++;
-
-  // 背景スクロール
-  bgX -= 2;
-  if (bgX <= -canvas.width) bgX = 0;
-
-  // プレイヤーアニメーション
-  if (frameCount % 20 === 0) {
-    playerFrame = (playerFrame + 1) % 2;
-  }
-
-  // 障害物生成
-  obstacleTimer++;
-  if (obstacleTimer > 100 - level * 5) {
-    const isSlow = Math.random() < 0.5;
-    let speed = isSlow ? 2 : 2 + Math.floor(Math.random() * level);
-    let type = isSlow ? "_1" : "_2";
-
-    obstacles.push({
-      x: canvas.width,
-      y: lanes[Math.floor(Math.random() * 3)] - 30,
-      width: 60,
-      height: 60,
-      speed: speed,
-      img: level + type,
+        // gameovers
+        imagePaths.gameovers.forEach((src, i) => {
+            loadOne(src, (img) => { gameOverImgs[i] = img; });
+        });
     });
-    obstacleTimer = 0;
-  }
+}
 
-  // 障害物移動 & 消去
-  for (let i = obstacles.length - 1; i >= 0; i--) {
-    obstacles[i].x -= obstacles[i].speed;
-    if (obstacles[i].x + obstacles[i].width < 0) {
-      obstacles.splice(i, 1);
-      score++;
-      if (score % 10 === 0 && level < 9) level++;
+// ====== 障害物スピード（50%遅い=2 / 50%速い>2、レベルで上限UP） ======
+function getObstacleSpeed() {
+    if (Math.random() < 0.5) {
+        return 2; // 遅い
+    } else {
+        let maxSpeed;
+        if (level <= 3) maxSpeed = 4;
+        else if (level <= 6) maxSpeed = 5;
+        else maxSpeed = 6;
+        return 2 + Math.random() * (maxSpeed - 2);
     }
-  }
+}
 
-  // 衝突判定
-  for (let obs of obstacles) {
-    if (
-      player.x < obs.x + obs.width &&
-      player.x + player.width > obs.x &&
-      player.y < obs.y + obs.height &&
-      player.y + player.height > obs.y
-    ) {
-      gameOver();
+// ====== レベル別の障害物数 ======
+function getObstacleCount() {
+    if (level <= 3) return 3;
+    if (level <= 6) return 4;
+    return 5; // 7〜9
+}
+
+let obstacles = [];
+function initObstacles() {
+    obstacles = [];
+    const count = getObstacleCount();
+    for (let i = 0; i < count; i++) {
+        obstacles.push({
+            x: canvas.width + i * 400,
+            lane: Math.floor(Math.random() * 3),
+            speed: getObstacleSpeed(),
+            img: null
+        });
     }
-  }
-
-  // プレイヤーの位置
-  player.y = lanes[player.lane] - player.height / 2;
 }
 
-// ===== プレイ中の描画 =====
-function drawGame() {
-  // 背景（スクロール）
-  let bg = images["bg" + level];
-  ctx.drawImage(bg, bgX, 0, canvas.width, canvas.height);
-  ctx.drawImage(bg, bgX + canvas.width, 0, canvas.width, canvas.height);
-
-  // プレイヤー
-  let playerImgKey = "player" + (playerFrame + 1);
-  let playerImg = images[playerImgKey];
-  ctx.drawImage(playerImg, player.x, player.y, player.width, player.height);
-
-  // 障害物
-  for (let obs of obstacles) {
-    ctx.drawImage(images[obs.img], obs.x, obs.y, obs.width, obs.height);
-  }
-
-  // スコア＆レベル（左下表示＋アウトライン）
-  ctx.font = "20px Arial";
-  ctx.lineWidth = 4;
-  ctx.strokeStyle = "white";
-  ctx.fillStyle = "black";
-  ctx.strokeText("スコア: " + score, 10, canvas.height - 40);
-  ctx.fillText("スコア: " + score, 10, canvas.height - 40);
-  ctx.strokeText("レベル: " + level, 10, canvas.height - 15);
-  ctx.fillText("レベル: " + level, 10, canvas.height - 15);
+function startGame() {
+    gameState = "play";
+    score = 0;
+    level = 1;
+    currentLane = 0;
+    bgOffset = 0;
+    isColliding = false;
+    if (collisionTimer) clearTimeout(collisionTimer);
+    initObstacles();
 }
 
-// ===== ゲームオーバー画面 =====
-function drawGameOver() {
-  ctx.font = "40px Arial";
-  ctx.lineWidth = 6;
-  ctx.strokeStyle = "white";
-  ctx.fillStyle = "red";
-  ctx.strokeText("ゲームオーバー", canvas.width / 2 - 120, canvas.height / 2 - 20);
-  ctx.fillText("ゲームオーバー", canvas.width / 2 - 120, canvas.height / 2 - 20);
-
-  ctx.font = "24px Arial";
-  ctx.lineWidth = 4;
-  ctx.strokeStyle = "white";
-  ctx.fillStyle = "black";
-  ctx.strokeText("スコア: " + score, canvas.width / 2 - 60, canvas.height / 2 + 20);
-  ctx.fillText("スコア: " + score, canvas.width / 2 - 60, canvas.height / 2 + 20);
-  ctx.strokeText("レベル: " + level, canvas.width / 2 - 60, canvas.height / 2 + 50);
-  ctx.fillText("レベル: " + level, canvas.width / 2 - 60, canvas.height / 2 + 50);
-
-  ctx.strokeText("タップでタイトルに戻る", canvas.width / 2 - 120, canvas.height / 2 + 100);
-  ctx.fillText("タップでタイトルに戻る", canvas.width / 2 - 120, canvas.height / 2 + 100);
+function handleCollision() {
+    if (!isColliding) {
+        isColliding = true;
+        collisionTimer = setTimeout(() => {
+            gameState = "gameover";
+            isColliding = false;
+        }, 1000);
+    }
 }
 
-// ===== 入力処理 =====
-canvas.addEventListener("click", () => {
-  if (gameState === "title") {
-    startGame();
-  } else if (gameState === "gameover") {
-    gameState = "title";
-  }
+function handleInputStart(y, x) {
+    startY = y;
+    startX = x;
+}
+function handleInputEnd(y, x) {
+    if (gameState === "play") {
+        if (!isColliding) {
+            if (startY - y > 30 && currentLane > 0) currentLane--;
+            if (y - startY > 30 && currentLane < laneY.length - 1) currentLane++;
+        }
+    } else if (gameState === "start") {
+        startGame();
+    } else if (gameState === "gameover") {
+        if (x >= goButton.x && x <= goButton.x + goButton.w &&
+            y >= goButton.y && y <= goButton.y + goButton.h) {
+            gameState = "start";
+        }
+    }
+}
+
+// ====== 入力イベント ======
+canvas.addEventListener("touchstart", e => {
+    handleInputStart(e.touches[0].clientY, e.touches[0].clientX);
+});
+canvas.addEventListener("touchend", e => {
+    handleInputEnd(e.changedTouches[0].clientY, e.changedTouches[0].clientX);
+});
+canvas.addEventListener("mousedown", e => {
+    handleInputStart(e.clientY, e.clientX);
+});
+canvas.addEventListener("mouseup", e => {
+    handleInputEnd(e.clientY, e.clientX);
 });
 
-// ===== スワイプで上下移動 =====
-let touchStartY = null;
+// ====== メインループ ======
+function gameLoop() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-canvas.addEventListener("touchstart", (e) => {
-  e.preventDefault(); // ← スクロール防止
-  touchStartY = e.touches[0].clientY;
-}, { passive: false });
+    if (gameState === "loading") {
+        // 背景（ローディング画像の読み込み前でも真っ黒にはしない）
+        ctx.fillStyle = "black";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-canvas.addEventListener("touchend", (e) => {
-  e.preventDefault(); // ← スクロール防止
-  let touchEndY = e.changedTouches[0].clientY;
-  if (touchStartY !== null) {
-    if (touchEndY < touchStartY - 30 && player.lane > 0) {
-      player.lane--;
-    } else if (touchEndY > touchStartY + 30 && player.lane < 2) {
-      player.lane++;
+        if (loadingImg) {
+            ctx.drawImage(loadingImg, 0, 0, canvas.width, canvas.height);
+        } else {
+            // まだ画像が読めてない場合の暫定表示
+            ctx.fillStyle = "white";
+            ctx.font = "30px Arial";
+            ctx.fillText("Loading...", canvas.width / 2 - 60, canvas.height / 2);
+        }
+
+        // 進捗バー
+        loadingProgress = Math.floor((loadedImages / totalImages) * 100);
+        const barWidth = 400;
+        const barHeight = 20;
+        const barX = (canvas.width - barWidth) / 2;
+        const barY = canvas.height - 100;
+
+        ctx.strokeStyle = "white";
+        ctx.strokeRect(barX, barY, barWidth, barHeight);
+
+        ctx.fillStyle = "lime";
+        ctx.fillRect(barX, barY, (loadingProgress / 100) * barWidth, barHeight);
+
+        ctx.fillStyle = "white";
+        ctx.font = "20px Arial";
+        ctx.fillText(`${loadingProgress}%`, barX + barWidth / 2 - 20, barY - 10);
+
+        if (loadedImages >= totalImages) {
+            gameState = "start";
+        }
+
+    } else if (gameState === "start") {
+        ctx.drawImage(startImg, 0, 0, canvas.width, canvas.height);
+
+    } else if (gameState === "play") {
+        // 背景スクロール
+        if (!isColliding) {
+            bgOffset -= 2;
+            if (bgOffset <= -canvas.width) bgOffset = 0;
+        }
+        const bg = backgrounds[level - 1] || backgrounds[0];
+        ctx.drawImage(bg, bgOffset, 0, canvas.width, canvas.height);
+        ctx.drawImage(bg, bgOffset + canvas.width, 0, canvas.width, canvas.height);
+
+        // 障害物
+        obstacles.forEach(obs => {
+            if (!isColliding) obs.x -= obs.speed;
+
+            if (obs.x < -50 && !isColliding) {
+                obs.x = canvas.width + Math.random() * 400;
+                obs.lane = Math.floor(Math.random() * 3);
+                obs.speed = getObstacleSpeed();
+                score++;
+
+                // レベルアップ＆必要数まで障害物を追加
+                if (score % 10 === 0 && level < 9) {
+                    level++;
+                    const desired = getObstacleCount();
+                    while (obstacles.length < desired) {
+                        obstacles.push({
+                            x: canvas.width + Math.random() * 400,
+                            lane: Math.floor(Math.random() * 3),
+                            speed: getObstacleSpeed(),
+                            img: null
+                        });
+                    }
+                }
+            }
+
+            // 表示画像：speed=2 → 遅い(インデックス0)、>2 → 速い(インデックス1)
+            const imgPair = obstacleImgs[level - 1] || obstacleImgs[0];
+            obs.img = imgPair[obs.speed > 2 ? 1 : 0] || imgPair[0];
+            ctx.drawImage(obs.img, obs.x, laneY[obs.lane], 50, 50);
+
+            // 当たり判定
+            if (!isColliding && Math.abs(playerX - obs.x) < playerSize - 10 && currentLane === obs.lane) {
+                handleCollision();
+            }
+        });
+
+        // 主人公（2枚交互）
+        if (step % 20 < 10) {
+            ctx.drawImage(playerImg1, playerX, laneY[currentLane], playerSize, playerSize);
+        } else {
+            ctx.drawImage(playerImg2, playerX, laneY[currentLane], playerSize, playerSize);
+        }
+
+        // ヒット演出
+        if (isColliding) {
+            ctx.beginPath();
+            ctx.arc(playerX + playerSize / 2, laneY[currentLane] + playerSize / 2, 40, 0, Math.PI * 2);
+            ctx.fillStyle = "rgba(255, 0, 0, 0.5)";
+            ctx.fill();
+        }
+
+        step++;
+
+        // スコアとレベルの表示（左下に配置、アウトライン付き）
+        ctx.font = "20px Arial";
+        ctx.lineWidth = 4;       // アウトラインの太さ
+        ctx.strokeStyle = "white"; // アウトラインの色
+        ctx.fillStyle = "black";   // 本文の色
+
+        // スコア
+        ctx.strokeText("スコア: " + score, 10, canvas.height - 40);
+        ctx.fillText("スコア: " + score, 10, canvas.height - 40);
+
+        // レベル
+        ctx.strokeText("レベル: " + level, 10, canvas.height - 15);
+        ctx.fillText("レベル: " + level, 10, canvas.height - 15);
+
+    } else if (gameState === "gameover") {
+        const gov = gameOverImgs[level - 1] || gameOverImgs[0];
+        ctx.drawImage(gov, 0, 0, canvas.width, canvas.height);
+
+        ctx.fillStyle = "white";
+        ctx.font = "30px Arial";
+        ctx.fillText(`Score: ${score}`, 10, 50);
+        ctx.fillText(`Level: ${level}`, 10, 90);
+
+        // 戻るボタン
+        ctx.fillStyle = "#222";
+        ctx.fillRect(goButton.x, goButton.y, goButton.w, goButton.h);
+        ctx.strokeStyle = "white";
+        ctx.strokeRect(goButton.x, goButton.y, goButton.w, goButton.h);
+        ctx.fillStyle = "white";
+        ctx.font = "20px Arial";
+        ctx.fillText("スタート画面に戻る", goButton.x + 15, goButton.y + 30);
     }
-  }
-  touchStartY = null;
-}, { passive: false });
 
-// ===== ループ開始 =====
+    requestAnimationFrame(gameLoop);
+}
+
+// ====== 起動 ======
+preloadImages().then(() => {
+    console.log("All images requested.");
+});
 gameLoop();
