@@ -33,7 +33,8 @@ let goButton = { x: 300, y: 500, w: 200, h: 50 };
 // ====== レーン位置とキャラサイズ ======
 const laneY = [180, 300, 420];
 const playerX = 100;
-const playerSize = 100;
+const playerSizeX = 150;
+const playerSizeY = 50;
 
 // ====== 画像置き場 ======
 let playerImg1, playerImg2;
@@ -292,22 +293,22 @@ function gameLoop() {
             ctx.drawImage(obs.img, obs.x, laneY[obs.lane], 50, 50);
 
             // 当たり判定
-            if (!isColliding && Math.abs(playerX - obs.x) < playerSize - 10 && currentLane === obs.lane) {
+            if (!isColliding && Math.abs(playerX - obs.x) < playerSizeX - 10 && currentLane === obs.lane) {
                 handleCollision();
             }
         });
 
         // 主人公（2枚交互）
         if (step % 20 < 10) {
-            ctx.drawImage(playerImg1, playerX, laneY[currentLane], playerSize, playerSize);
+            ctx.drawImage(playerImg1, playerX, laneY[currentLane], playerSizeX, playerSizeY);
         } else {
-            ctx.drawImage(playerImg2, playerX, laneY[currentLane], playerSize, playerSize);
+            ctx.drawImage(playerImg2, playerX, laneY[currentLane], playerSizeX, playerSizeY);
         }
 
         // ヒット演出
         if (isColliding) {
             ctx.beginPath();
-            ctx.arc(playerX + playerSize / 2, laneY[currentLane] + playerSize / 2, 40, 0, Math.PI * 2);
+            ctx.arc(playerX + playerSizeX / 2, laneY[currentLane] + playerSizeY / 2, 40, 0, Math.PI * 2);
             ctx.fillStyle = "rgba(255, 0, 0, 0.5)";
             ctx.fill();
         }
