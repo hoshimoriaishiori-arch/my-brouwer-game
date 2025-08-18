@@ -187,9 +187,9 @@ function handleInputEnd(y, x) {
             //x >= goButton.x && x <= goButton.x + goButton.w &&
             //y >= goButton.y && y <= goButton.y + goButton.h) {
                 clickX >= gameOverButton.x &&
-      clickX <= gameOverButton.x + gameOverButton.w &&
-      clickY >= gameOverButton.y &&
-      clickY <= gameOverButton.y + gameOverButton.h){
+      X <= gameOverButton.x + gameOverButton.w &&
+      Y >= gameOverButton.y &&
+      Y <= gameOverButton.y + gameOverButton.h){
             gameState = "start";
         }
     }
@@ -361,7 +361,7 @@ function gameLoop() {
   // ボタン文字
   ctx.font = "28px Arial";
   ctx.fillStyle = "black";
-  ctx.fillText("スタート画面に戻る", btnX + 20, btnY + 40);
+  ctx.fillText("スタートに戻る", btnX + 20, btnY + 40);
 
   // ボタン範囲を保存（クリック判定用）
   gameOverButton = { x: btnX, y: btnY, w: btnWidth, h: btnHeight };
