@@ -31,7 +31,7 @@ let collisionTimer = null;
 let goButton = { x: 300, y: 500, w: 200, h: 50 };
 
 // ====== レーン位置とキャラサイズ ======
-const laneY = [140, 260, 380];
+const laneY = [180, 300, 420];
 const playerX = 100;
 const playerSize = 100;
 
