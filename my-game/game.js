@@ -28,8 +28,8 @@ let startX = 0;
 let isColliding = false;
 let collisionTimer = null;
 
-let goButton = { x: 300, y: 500, w: 200, h: 50 };
-let gameOverButton = { x: btnX, y: btnY, w: btnWidth, h: btnHeight };
+//let goButton = { x: 300, y: 500, w: 200, h: 50 };
+gameOverButton = { x: btnX, y: btnY, w: btnWidth, h: btnHeight };
 
 // ====== レーン位置とキャラサイズ ======
 const laneY = [180, 300, 420];
@@ -188,7 +188,7 @@ function handleInputEnd(y, x) {
         if (
             //x >= goButton.x && x <= goButton.x + goButton.w &&
             //y >= goButton.y && y <= goButton.y + goButton.h) {
-                clickX >= gameOverButton.x &&
+                X >= gameOverButton.x &&
       X <= gameOverButton.x + gameOverButton.w &&
       Y >= gameOverButton.y &&
       Y <= gameOverButton.y + gameOverButton.h){
