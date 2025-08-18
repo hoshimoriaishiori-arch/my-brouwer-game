@@ -33,7 +33,7 @@ let goButton = { x: 300, y: 500, w: 200, h: 50 };
 // ====== レーン位置とキャラサイズ ======
 const laneY = [160, 280, 400];
 const playerX = 100;
-const playerSize = 80;
+const playerSize = 100;
 
 // ====== 画像置き場 ======
 let playerImg1, playerImg2;
