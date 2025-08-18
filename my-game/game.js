@@ -33,8 +33,8 @@ let goButton = { x: 300, y: 500, w: 200, h: 50 };
 // ====== レーン位置とキャラサイズ ======
 const laneY = [180, 300, 420];
 const playerX = 100;
-const playerSizeX = 150;
-const playerSizeY = 50;
+const playerSizeX = 50;
+const playerSizeY = 150;
 
 // ====== 画像置き場 ======
 let playerImg1, playerImg2;
@@ -191,7 +191,7 @@ function handleInputEnd(y, x) {
       X <= gameOverButton.x + gameOverButton.w &&
       Y >= gameOverButton.y &&
       Y <= gameOverButton.y + gameOverButton.h){
-            gameState = "start";
+            gameState === "start";
         }
     }
 }
