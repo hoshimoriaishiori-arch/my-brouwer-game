@@ -29,6 +29,7 @@ let isColliding = false;
 let collisionTimer = null;
 
 let goButton = { x: 300, y: 500, w: 200, h: 50 };
+let gameOverButton = { x: btnX, y: btnY, w: btnWidth, h: btnHeight };
 
 // ====== レーン位置とキャラサイズ ======
 const laneY = [180, 300, 420];
