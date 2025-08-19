@@ -185,13 +185,13 @@ function handleInputEnd(y, x) {
     } else if (gameState === "start") {
         startGame();
     } else if (gameState === "gameover") {
-      //  if (
+        if (
       //      x >= goButton.x && x <= goButton.x + goButton.w &&
       //      y >= goButton.y && y <= goButton.y + goButton.h) {
-           //X >= gameOverButton.x && X <= gameOverButton.x + gameOverButton.w &&
-           //Y >= gameOverButton.y && Y <= gameOverButton.y + gameOverButton.h){
+           X >= gameOverButton.x && X <= gameOverButton.x + gameOverButton.w &&
+           Y >= gameOverButton.y && Y <= gameOverButton.y + gameOverButton.h){
             gameState = "start";
-      //  }
+        }
     }
 }
 
@@ -338,33 +338,33 @@ function gameLoop() {
         ctx.fillText(`Level: ${level}`, 10, 90);
 
         // 戻るボタン
-        ctx.fillStyle = "#222";
-        ctx.fillRect(goButton.x, goButton.y, goButton.w, goButton.h);
-        ctx.strokeStyle = "white";
-        ctx.strokeRect(goButton.x, goButton.y, goButton.w, goButton.h);
-        ctx.fillStyle = "white";
-        ctx.font = "20px Arial";
-        ctx.fillText("スタート画面に戻る", goButton.x + 15, goButton.y + 30);
+        //ctx.fillStyle = "#222";
+        //ctx.fillRect(goButton.x, goButton.y, goButton.w, goButton.h);
+        //ctx.strokeStyle = "white";
+        //ctx.strokeRect(goButton.x, goButton.y, goButton.w, goButton.h);
+        //ctx.fillStyle = "white";
+        //ctx.font = "20px Arial";
+        //ctx.fillText("スタート画面に戻る", goButton.x + 15, goButton.y + 30);
 // ===== 大きなボタンを描画 =====
-  //const btnWidth = 260;
-  //const btnHeight = 60;
-  //const btnX = canvas.width / 2 - btnWidth / 2;
-  //const btnY = canvas.height / 2 + 100;
+  const btnWidth = 260;
+  const btnHeight = 60;
+  const btnX = canvas.width / 2 - btnWidth / 2;
+  const btnY = canvas.height / 2 + 100;
 
   // ボタン背景
-  //ctx.fillStyle = "lightblue";
-  //ctx.fillRect(btnX, btnY, btnWidth, btnHeight);
-  //ctx.strokeStyle = "blue";
-  //ctx.lineWidth = 4;
-  //ctx.strokeRect(btnX, btnY, btnWidth, btnHeight);
+  ctx.fillStyle = "lightblue";
+  ctx.fillRect(btnX, btnY, btnWidth, btnHeight);
+  ctx.strokeStyle = "blue";
+  ctx.lineWidth = 4;
+  ctx.strokeRect(btnX, btnY, btnWidth, btnHeight);
 
   // ボタン文字
-  //ctx.font = "28px Arial";
-  //ctx.fillStyle = "black";
-  //ctx.fillText("スタートに戻る", btnX + 20, btnY + 40);
+  ctx.font = "28px Arial";
+  ctx.fillStyle = "black";
+  ctx.fillText("スタートに戻る", btnX + 20, btnY + 40);
 
   // ボタン範囲を保存（クリック判定用）
-  //gameOverButton = { x: btnX, y: btnY, w: btnWidth, h: btnHeight };
+  gameOverButton = { x: btnX, y: btnY, w: btnWidth, h: btnHeight };
         
         
     }
