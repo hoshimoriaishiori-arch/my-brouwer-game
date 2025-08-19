@@ -186,10 +186,10 @@ function handleInputEnd(y, x) {
         startGame();
     } else if (gameState === "gameover") {
         if (
-            //x >= goButton.x && x <= goButton.x + goButton.w &&
-            //y >= goButton.y && y <= goButton.y + goButton.h) {
-                X >= gameOverButton.x && X <= gameOverButton.x + gameOverButton.w &&
-                Y >= gameOverButton.y && Y <= gameOverButton.y + gameOverButton.h){
+            x >= goButton.x && x <= goButton.x + goButton.w &&
+            y >= goButton.y && y <= goButton.y + goButton.h) {
+           //X >= gameOverButton.x && X <= gameOverButton.x + gameOverButton.w &&
+           //Y >= gameOverButton.y && Y <= gameOverButton.y + gameOverButton.h){
             gameState === "start";
         }
     }
