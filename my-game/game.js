@@ -190,7 +190,7 @@ function handleInputEnd(y, x) {
       //      y >= goButton.y && y <= goButton.y + goButton.h) {
            //X >= gameOverButton.x && X <= gameOverButton.x + gameOverButton.w &&
            //Y >= gameOverButton.y && Y <= gameOverButton.y + gameOverButton.h){
-            gameState === "start";
+            gameState = "start";
       //  }
     }
 }
